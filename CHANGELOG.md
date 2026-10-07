@@ -19,11 +19,17 @@ vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still
 - Windows: the fast engine is now used. The check that a new index is the exact kind read the index file while the engine had it open, which Windows does not allow, so every command fell back to the built-in exact search and `doctor` reported "A test index could not be created". The file is now created by a short helper process and read before it is opened. Searches on 0.1.0 were still correct; they used the slower built-in search.
 - `sync --detach` on Windows no longer opens a console window of its own.
 - `init`: a `CLAUDE.md` or `AGENTS.md` whose lines end the Windows way (CRLF) now gets the rule in that form. Before, the rule was added with plain line endings and the file ended up with both kinds.
+- `rebuild --full` rejects invalid `--workers` values with the same usage error as `sync`, before starting to re-read notes.
+
+### Added
+
+- Regression tests for hour-long durations, exact minutes and the short-wait ETA rounding and five-second floor.
 
 ### Changed
 
 - Tests and CI only: the unit tests no longer assume a Mac (typed POSIX paths, Windows short folder names, a signal Windows cannot send, line endings), and the end-to-end acceptance script now also runs on Linux and Windows runners. A new first-run job installs with the README's line on all three systems and Node 20, 22 and 24 (on Windows from PowerShell and from the command prompt, checking the command's exit codes in each), and runs the first commands on a small invented vault: a path with spaces and parentheses inside a OneDrive-style folder, names with accents, Japanese and an emoji, a rename in letter case only, a path of about 500 characters, a note held by another program, and a full rebuild. A failure of the unit tests or the first run on any of the three systems now fails CI. A `.gitattributes` rule keeps text files LF on every system.
 - The index's `manifest.json` may hold one new optional field per note, `file`: the note's name as the disk spells it, written only when it differs from the name the index uses. 0.1.0 ignores it, so going back to 0.1.0 needs no rebuild.
+- README: says who builds and maintains the project (Mak Allen of the HeroForge.AI team) and where to find him on X.
 - Documentation only: a new README first screen with a picture of a real result, a "Set it up" section with steps for a person, steps for an AI and four commands to type by hand, a new demo recording, and a labelled figure of what a search returns. Long reference material moved to `docs/FIRST-RUN.md`, `docs/HOW-IT-WORKS.md` and `docs/COMPARISON.md`. The README now names `~/.ruvector/models/`, where the ruvector library keeps the reading model, in the safety facts and the removal steps. Recall counts are no longer printed in the README; they are in `docs/BENCHMARKS.md`.
 
 ### Known limits

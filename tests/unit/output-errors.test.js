@@ -62,6 +62,15 @@ test('plain numbers and durations', () => {
   assert.equal(duration(0.097), '0.1 s');
   assert.equal(duration(490), '8 min 10 s');
   assert.equal(duration(62), '1 min 2 s');
+  assert.equal(duration(120), '2 min');
+  assert.equal(duration(3600), '1 h 0 min');
+  assert.equal(duration(3660), '1 h 1 min');
+  assert.equal(duration(7320), '2 h 2 min');
+  assert.equal(eta(1), 'about 5 s left');
+  assert.equal(eta(12), 'about 10 s left');
+  assert.equal(eta(13), 'about 15 s left');
+  assert.equal(eta(49), 'about 50 s left');
+  assert.equal(eta(50), 'about 1 min left');
   assert.equal(eta(300), 'about 5 min left');
   assert.equal(plural(1, 'note'), '1 note');
   assert.equal(plural(1240, 'note'), '1,240 notes');
@@ -101,6 +110,40 @@ test('--help lists exactly the six commands and makes no saving claim', () => {
   assert.deepEqual(commands, ['init', 'sync', 'search', 'status', 'rebuild', 'doctor']);
   assert.ok(!/times less|x fewer|instant|hybrid/i.test(r.stdout));
   assert.equal(run(['--version']).stdout, '0.1.1\n');
+});
+
+test('full rebuild rejects invalid workers like sync, before starting an index', () => {
+  const home = tmpDir('workers'); const vault = path.join(tmpDir('workers'), 'notes');
+  fs.mkdirSync(path.join(vault, '.obsidian'), { recursive: true });
+  const note = '# A\n\nOne invented sentence about a garden.\n';
+  fs.writeFileSync(path.join(vault, 'A.md'), note);
+  const env = { VAULT_MIRROR_HOME: home };
+  const init = run(['init', vault, '--no-rule', '--json'], env);
+  assert.equal(init.status, 0, init.stderr);
+  const indexDir = JSON.parse(init.stdout).indexDir;
+  // If argument validation is missing, fail at model selection rather than downloading a model.
+  const configFile = path.join(home, 'config.json');
+  const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+  config.embedding.model = 'unsupported-workers-test-model';
+  fs.writeFileSync(configFile, JSON.stringify(config));
+  const message = '--workers takes a number, for example --workers 2.';
+  for (const workers of ['abc', '-1', 'Infinity']) {
+    for (const args of [['sync'], ['rebuild', '--full', '--yes'], ['rebuild', '--full']]) {
+      const human = run([...args, `--workers=${workers}`], env);
+      assert.equal(human.status, 2);
+      assert.equal(human.stdout, '');
+      assert.equal(human.stderr, `${message}\nNext: Run \`vault-mirror --help\`.\n`);
+      const json = run([...args, `--workers=${workers}`, '--json'], env);
+      assert.equal(json.status, 2);
+      assert.equal(json.stderr, '');
+      const body = JSON.parse(json.stdout);
+      assert.equal(body.error.code, 'VM_E_USAGE');
+      assert.equal(body.error.message, message);
+      assert.equal(body.error.exitCode, 2);
+      assert.equal(fs.existsSync(indexDir), false, 'runSync must not start');
+      assert.equal(fs.readFileSync(path.join(vault, 'A.md'), 'utf8'), note);
+    }
+  }
 });
 
 test('a --json error names the vault once one is set', () => {
