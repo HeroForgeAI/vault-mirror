@@ -14,14 +14,14 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-light.svg">
-  <img alt="A question, 'why is the fruit going black underneath', and what vault-mirror returns to an AI: the Problems section of a note called Tomatoes, match 0.42, with the paragraph 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.', the file and line it came from, and a link that opens that heading in Obsidian. Below: In step: 15 notes on disk = 15 notes in the index (32 passages). The notes are invented." src="docs/assets/hero-light.svg" width="640">
+  <img alt="A question, 'why is the fruit going black underneath', and what vault-mirror returns to an AI: the Problems section of a note called Tomatoes, match 0.42, with the paragraph 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.', the file and line it came from, and a link that opens that heading in Obsidian. Below: In step: 15 notes on disk = 15 notes in the index (32 passages). The notes are invented." src="docs/assets/hero-light.svg" width="600">
 </picture>
 
 <p><sub>A real result on 15 invented notes. It can miss, and then your AI searches the files.</sub></p>
 
 <p>
   <a href="https://github.com/HeroForgeAI/vault-mirror/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/HeroForgeAI/vault-mirror"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/HeroForgeAI/vault-mirror"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/HeroForgeAI/vault-mirror"></a><br>
   Runs on your computer · Node&nbsp;20 or newer · built on <a href="https://github.com/ruvnet/ruvector">ruvector</a><br>
   macOS: tested. Windows and Linux: <a href="https://github.com/HeroForgeAI/vault-mirror/actions/workflows/ci.yml">in&nbsp;testing</a>
 </p>
