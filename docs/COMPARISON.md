@@ -4,12 +4,12 @@ Each of these is good at what it is built for. The other columns come from each 
 
 | | vault-mirror 0.1.0 | [qmd](https://github.com/tobi/qmd) v2.8.3 | [basic-memory](https://github.com/basicmachines-co/basic-memory) v0.23.2 | [Smart Connections](https://github.com/brianpetro/obsidian-smart-connections) 4.7.2 | [obsidian-brain](https://github.com/ruvnet/obsidian-brain) v0.1.0 |
 | --- | --- | --- | --- | --- | --- |
-| Runs as | a shell command | a shell command | an MCP server and a shell command | an Obsidian plugin | an Obsidian plugin and two local services |
+| Runs as | a shell command, and an MCP server (new since 0.1.0) | a shell command | an MCP server and a shell command | an Obsidian plugin | an Obsidian plugin and two local services |
 | Never writes a note | ✓ | – | ✗ (two-way by design) | – | – |
 | A deleted note leaves the index | ✓ | – | – | – | – |
 | One command proves index = vault | ✓ | – | – | – | – |
 | Blends keyword and meaning, then reranks | ✗ | ✓ | ✓ (reranking is optional) | – (a rerank stage is a Pro option) | – |
-| MCP server | ✗ | ✓ | ✓ | – | ✓ |
+| MCP server | ✓ (new since 0.1.0, not in a release yet; it only reads notes) | ✓ | ✓ | – | ✓ |
 
 If ranking quality is what you need, use qmd: it is the stronger search tool. vault-mirror keeps two lists side by side and puts its effort into the read-only and 1:1 guarantees.
 

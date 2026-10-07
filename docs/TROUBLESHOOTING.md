@@ -53,3 +53,7 @@ npm put the command in a folder your shell does not look in. Run `npm prefix -g`
 ## npm says git is missing during install
 
 The install line fetches a pinned tag from GitHub, which needs git. Install git, check with `git --version`, and install again.
+
+## The MCP server does not show up in my app, or a tool answers with an error
+
+See [the MCP server's own troubleshooting](MCP.md#troubleshooting). The first thing to try: `vault-mirror mcp --setup` prints the lines to add with full paths, for apps that cannot find `vault-mirror` by name.

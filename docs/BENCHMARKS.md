@@ -286,11 +286,33 @@ Not measured in this run: a sync after one edit, three wordings in one call, `re
 | The token counter against the real model | Agreed at the exact edge of the window for 22 kinds of text (prose, prices, hex, web addresses, accents, emoji, Greek, Cyrillic, Japanese, CJK, symbols, zero-width and no-break spaces, a 120-character word). The window test passed 200 of 200 on the practice vault (densest passage 110 tokens) and 200 of 200 on the fixture |
 | How often the index finds the right note for a question asked in other words | Ten reworded questions on the practice vault: the expected note was in the top 3 for 9 of 10 with one wording, and for 10 of 10 (rank 1 or 2) when three wordings were passed in one call. Two runs agreed on all ten. A small sample from one author: recorded, **not a number to print**. Run again with the exact-words list: the same counts, see "The recall check" above |
 
+## The MCP server: first search and repeat searches
+
+Added after v0.1.0. What is timed is the whole call as an MCP client sees it: from sending `search_vault` to having the result. The command beside it is the whole `vault-mirror search` command, from start to exit.
+
+One machine: Apple M4 Max, 16 cores, 64 GB, Node 24.15.0, Oct 7, 2026. Other jobs were running (load average 5.4 to 5.5), so read each number as rough. The index is the practice vault's: 176 notes, 2,199 passages. The question is "How do I link to another note?", asking for 8 notes.
+
+| | Median | Range | Runs |
+| --- | --- | --- | --- |
+| `vault-mirror search`, whole command | 0.37 s | 0.36 to 0.39 s | 5 |
+| `search_vault`, first search after the server starts (starts the reader, loads the model) | 0.34 s | 0.33 to 0.34 s | 3 (a new server each time) |
+| `search_vault`, repeat search, one wording | 0.05 s | 0.050 to 0.053 s | 7 |
+| `search_vault`, repeat search, three wordings in one call | 0.14 s | 0.14 to 0.14 s | 5 |
+
+- The top result is the same note and line as the command's, and the scores agree (0.771 and 0.771).
+- A repeat search still compares the vault with the index by size and date on every call, to say what is waiting to sync. That is inside the numbers above.
+- A question longer than about forty-five words is read at the model's full length: the server replaces its reader once (about as long as a first search), and a question then takes about 0.1 s to read where it took about 0.05 s, until the reader has been idle and stops.
+- Memory: the reader takes about 0.6 GB while it is alive (575 to 611 MB resident, measured as the model loaded in a process of its own). It is not started until the first search, and it stops after 5 minutes without one. The server itself holds the index's vectors in memory: 1,536 bytes a passage, so about 3 MB here and about 77 MB at 50,000 passages.
+- Not measured: a quiet machine, any other computer, an index larger than this one through the server, Windows and Linux timings.
+
+On the 34 invented notes the end-to-end test indexes, `npm run test:mcp` prints the same three timings for the machine it runs on. On this Mac: the command 0.31 s inside its process, the server's first search 0.34 s, repeat searches 0.046 to 0.050 s.
+
 ## How to measure again
 
 ```bash
 npm test
 node tests/acceptance/run.mjs --vault tests/fixtures/vault
+npm run test:mcp        # the MCP server end to end; prints the command's, the first and the repeat search times
 node tests/acceptance/run.mjs --vault <a vault> --read-only-vault --questions tests/acceptance/questions.obsidian-help.json
 node tests/bench/scale.mjs --dir <an empty scratch folder>
 node tests/bench/scale.mjs --dir <an empty scratch folder> --notes 2000 --passages 50000 --runs 7

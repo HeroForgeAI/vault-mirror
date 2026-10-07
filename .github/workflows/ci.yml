@@ -11,6 +11,11 @@ name: CI
 #              commit), then doctor, init, sync, status, search, edit, sync, search on a small invented
 #              vault whose path has a space and whose notes have non-English names. Real output and
 #              timings go to the job log. A failure on any system fails the workflow.
+# mcp:         the MCP server end to end, on macOS, Linux and Windows: the real `vault-mirror mcp` over
+#              stdio, driven by the official SDK's client, on the invented fixture vault. It lists the
+#              tools, runs every one, and compares a checksum listing of the vault before and after,
+#              with a spy that throws on any write under the vault. It downloads the reading model once
+#              and caches it. A failure on any of the three fails the workflow.
 
 on:
   push:
@@ -168,3 +173,36 @@ jobs:
       # No shell is set: PowerShell on Windows, bash elsewhere, as a new user would have it.
       - name: The first ten minutes of a new user (real output and timings)
         run: node tests/acceptance/first-run.mjs --installed --default-home
+
+  mcp:
+    name: MCP server, ${{ matrix.label }}, Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, label: macOS, node: 22 }
+          - { os: ubuntu-latest, label: Linux, node: 22 }
+          - { os: windows-latest, label: Windows, node: 22 }
+          # The oldest Node the package allows.
+          - { os: ubuntu-latest, label: Linux, node: 20 }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: npm-shrinkwrap.json
+      - name: Cache the reading model
+        uses: actions/cache@v4
+        with:
+          path: ~/.ruvector/models
+          key: reading-model-${{ runner.os }}-${{ hashFiles('src/embed/models.js') }}
+      - run: npm ci
+      # The glob is left to bash, so the same line works on every Node version in the matrix.
+      - name: MCP server, end to end (lists the tools, runs each one, checksums the vault before and after)
+        run: node --test tests/mcp/*.test.js

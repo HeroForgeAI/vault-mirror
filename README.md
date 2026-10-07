@@ -271,7 +271,7 @@ vault-mirror makes no HIPAA claim. It is not affiliated with Obsidian.
 
 Nothing runs in the background and nothing watches your files. A sync runs when you or your AI ask for one, reads only the notes that changed, and replaces their old passages with the new ones.
 
-For engineers: a small Node command-line tool on [ruvector](https://github.com/ruvnet/ruvector), with incremental sync by content fingerprint, passages cut at headings and sized in real tokens, an exact (flat) index, real deletes, a reading model that runs on your computer, and one direct runtime dependency. The six stages of a sync and each engineering decision with its reason are in [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md). The full design is in [docs/SPEC.md](docs/SPEC.md).
+For engineers: a small Node command-line tool on [ruvector](https://github.com/ruvnet/ruvector), with incremental sync by content fingerprint, passages cut at headings and sized in real tokens, an exact (flat) index, real deletes, a reading model that runs on your computer, and two direct runtime dependencies (ruvector, and the MCP SDK for the server). The six stages of a sync and each engineering decision with its reason are in [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md). The full design is in [docs/SPEC.md](docs/SPEC.md).
 
 The reading model is all-MiniLM-L6-v2. Before it became the default, every reading model ruvector 0.3.3 names was run on the same small set of questions: all-MiniLM-L6-v2, all-MiniLM-L12-v2, gte-small, bge-small-en-v1.5, bge-base-en-v1.5 and e5-small-v2, with plain keyword search beside them for scale. The default was chosen because it is the smallest and the fastest, and nothing else did clearly better on that small test. The table, the method and what was not tested: [Reading models we compared](docs/BENCHMARKS.md#reading-models-we-compared).
 
@@ -289,20 +289,32 @@ It prints `In step: yes` only when nine named checks all hold. `status --verify`
 
 Thank you, rUv ([@ruvnet](https://github.com/ruvnet)). vault-mirror exists because ruvector does the hard part well, and because [obsidian-brain](https://github.com/ruvnet/obsidian-brain) showed the way.
 
-## Coming soon: an MCP server
+## The MCP server
 
-Today your AI uses vault-mirror by running its commands, and a one-line rule in your project tells it to. That works, and it is what this page describes.
+Your AI can reach vault-mirror in two ways. One is what this page has shown so far: it runs the commands, and a one-line rule in your project tells it to. The other is an MCP server. MCP (Model Context Protocol) is the standard way to hand an AI app a set of tools. Add the server once, and vault-mirror shows up as tools your AI already has.
 
-Next comes an MCP server. MCP (Model Context Protocol) is the standard way to hand an AI app a set of tools. With it, vault-mirror will show up as tools your AI already has. This will be vault-mirror's own small server. Here is what it is planned to bring:
+Set your vault up first, as above. Then, in Claude Code:
 
-- **No rule line per project.** You will add the server once, and your AI will be able to search your vault from any project.
-- **More apps.** Any app that speaks MCP will be able to use it, including ones with no terminal, such as a desktop chat app.
-- **Fewer interruptions.** Your AI will call a named search tool, so there will be no shell command to approve each time.
-- **Tidier results.** The search will hand back structured results, so your AI reads less to get the same passage.
-- **Faster repeat searches.** The server will be able to keep the reading model loaded between questions.
-- **The same promise.** It only reads your notes. The server will not get a tool that writes to a vault.
+```bash
+claude mcp add --scope user vault-mirror -- vault-mirror mcp
+```
 
-It is planned, not released, and the details may change. Nothing on this page needs it. If there is something you would want from it, [open an idea](https://github.com/HeroForgeAI/vault-mirror/issues/new/choose).
+Codex and Claude Desktop take one entry each. `vault-mirror mcp --setup` prints all three, ready to paste, and changes no file. Then ask your AI: "Search my vault for ..."
+
+What it brings:
+
+- **No rule line per project.** You add the server once, and your AI can search your vault from any project.
+- **More apps.** Any app that speaks MCP can use it, including ones with no terminal, such as a desktop chat app.
+- **Fewer interruptions.** Your AI calls a named search tool, so there is no shell command to approve each time.
+- **Tidier results.** A search hands back one structured result: each passage with its note, heading, file, line, score and link, and nothing said twice.
+- **Faster repeat searches.** The server keeps the reading model loaded for five minutes after a search, so the next one skips loading it. On the test Mac, with 176 notes, a repeat search took 0.05 s through the server and 0.37 s as a command ([how that was measured](docs/BENCHMARKS.md#the-mcp-server-first-search-and-repeat-searches)).
+- **The same promise.** It only reads your notes. The server has no tool that writes to a vault.
+
+There are three tools. `search_vault` searches. `vault_status` answers "is my vault in sync?" `sync_index` brings the index up to date; it writes to vault-mirror's own index folder and never to your vault. There is no tool that creates, edits, moves or deletes a note.
+
+While the model is loaded it takes about 0.6 GB of memory. Nothing is loaded until your AI first searches, and it is let go after five minutes without a search.
+
+**It is new since 0.1.0 and not in a release yet.** The install line at the top of this page gives you 0.1.0, which does not have it. Nothing else on this page needs it. Setup for each app, the tools in full, what it cannot do and troubleshooting: [docs/MCP.md](docs/MCP.md).
 
 ## When plain file search is enough, and when this helps
 
@@ -431,13 +443,14 @@ What CI runs on GitHub's hosted Windows machines (x64), and passes:
 
 Not yet tried on Windows, by anyone: OneDrive files that are shown but not downloaded; whether `sync --detach` flashes a window on a real desktop; Ctrl+C in the middle of a sync (one program cannot send it to another, so CI cannot); a vault of more than about 170 notes; and Windows on ARM, where ruvector has no native build and the built-in exact engine is meant to take over.
 
+New since 0.1.0, not in a release yet: [the MCP server](#the-mcp-server), with its own end-to-end test on the same invented notes.
+
 Planned, with no dates:
 
 - Intel Macs, Windows on ARM and Linux on ARM verified.
 - A release on the npm registry, so the install line is short and `npx vault-mirror doctor` works as a first try.
 - A warm mode: an optional helper that keeps the model loaded, so a second search skips the 0.26 s model load. Off by default.
 - Skip the index safety probe when the index file has not changed since the last good open.
-- An MCP server, for agents that prefer one to a shell command. [What it is planned to bring](#coming-soon-an-mcp-server).
 
 ## Who makes this
 

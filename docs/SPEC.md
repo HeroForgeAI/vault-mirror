@@ -76,7 +76,7 @@ The six stages of the house pattern map onto modules: Trigger (`cli`), Extract (
 | --- | --- |
 | Node | `engines.node: ">=20"`. Developed and measured on 24.15 only. `doctor` warns below 22 |
 | Language | Plain JavaScript, ES modules, JSDoc types with `// @ts-check`, `tsc --noEmit`. No build step, so a git tag installs as is |
-| Runtime dependencies | Exactly one: `ruvector` pinned to `0.3.3`, with `npm-shrinkwrap.json` committed so `@ruvector/core` and the native packages are pinned for every install route, plus `"overrides": { "@ruvector/core": "0.1.32" }` in `package.json` (pinning `ruvector` alone lets a newer native engine in; `overrides` covers `npm ci` in a clone, the shrinkwrap covers an install of the package, and `doctor` proves it either way by printing the three versions actually loaded). Never install with `--omit=optional`: the native engine is an optional package. A unit test asserts the shrinkwrap lists all five platform packages (a shrinkwrap made on one platform can omit the others, which would leave those users with no engine) |
+| Runtime dependencies | Two, each pinned exactly. `@modelcontextprotocol/server` `2.3.1`, the official MCP SDK, is loaded only by `vault-mirror mcp` (section 21); it brings its own `core` package and `zod`. The other is `ruvector` pinned to `0.3.3`, with `npm-shrinkwrap.json` committed so `@ruvector/core` and the native packages are pinned for every install route, plus `"overrides": { "@ruvector/core": "0.1.32" }` in `package.json` (pinning `ruvector` alone lets a newer native engine in; `overrides` covers `npm ci` in a clone, the shrinkwrap covers an install of the package, and `doctor` proves it either way by printing the three versions actually loaded). Never install with `--omit=optional`: the native engine is an optional package. A unit test asserts the shrinkwrap lists all five platform packages (a shrinkwrap made on one platform can omit the others, which would leave those users with no engine) |
 | Not dependencies | No YAML library, no argument parser (`node:util.parseArgs`), no test framework (`node:test`), no colour library |
 | Dev dependencies | `typescript` (type check only), `eslint` |
 | Loading ruvector | One file, `src/engine/ruvector-loader.js`, uses `createRequire` to load the CommonJS package. It deletes `RUVECTOR_BACKEND` from the environment first (the value `rvf` crashes the import), and the tool has no `--backend` flag. ruvector is used as a library only: the tool never runs a `ruvector` command, never `hooks init`, never `mcp start`, and never changes the current folder to the vault |
@@ -187,6 +187,7 @@ Precedence: command flag, then `VAULT_MIRROR_HOME`, then `config.json`, then def
 3. *Spy test.* A preload module wraps `fs` and `fs/promises` write calls (`open` with write flags, `writeFile`, `appendFile`, `rename`, `unlink`, `rm`, `rmdir`, `mkdir`, `copyFile`, `truncate`, `utimes`, `chmod`, `symlink`, `createWriteStream`) and throws if the resolved path is under the vault root. The full command set runs under it.
 4. *Static test.* A unit test scans `src/` and fails if any file other than `safe-write.js` references an fs write API, or if anything under `src/vault/` imports it.
 5. *Wrong-folder tests.* `init` and `sync` on a folder of several fixture vaults are refused; `init` run from inside a second, unregistered fixture vault writes no rule file there.
+6. *The MCP server.* The same snapshot and spy proofs, run against the server and every process it starts, plus a test of the tool list itself (section 21).
 
 ---
 
@@ -195,6 +196,8 @@ Precedence: command flag, then `VAULT_MIRROR_HOME`, then `config.json`, then def
 One binary, `vault-mirror`. Flags on every command: `--json`, `--quiet`, `--no-color`, `--help`, `--version`.
 
 Plain-English commands the agent maps (written into the rule by `init`): "sync my vault" is `sync`; "search my vault for …" is `search`; "is my vault in sync?" is `status`.
+
+A seventh command, `mcp`, runs the MCP server (section 21). It is the one command that does not exit when it has started, and it takes none of the common flags.
 
 ### Exit codes
 
@@ -739,6 +742,7 @@ A run that was stopped (`result=stopped`) reports what it saved, not what it pla
 | --- | --- | --- | --- |
 | `VM_E_NO_VAULT` | 2 | No vault is set up yet. | Run `vault-mirror init "<path to your vault>"`. |
 | `VM_E_NOT_ONE_VAULT` | 2 | `<path>` is not one vault (it is your home folder, a folder of several vaults, or a folder inside a vault). | Run `vault-mirror init` with the folder of the one vault you want. |
+| `VM_E_OTHER_VAULT` | 2 | This server is set to the vault at `<path>`, but the vault set up here is `<path>`. | Run `vault-mirror init "<path>"`, or give each vault its own home folder with `--home`. |
 | `VM_E_NOT_SYNCED` | 2 | Nothing is indexed yet. | Run `vault-mirror sync`. |
 | `VM_E_INDEX_IN_VAULT` | 2 | The index folder would sit inside your vault. It must stay outside so your notes are never touched. | Remove `VAULT_MIRROR_HOME` or point it to a folder outside the vault. |
 | `VM_E_MANIFEST_NEWER` | 2 | This index was made by a newer vault-mirror. | Update vault-mirror, or run `vault-mirror rebuild --full`. |
@@ -750,6 +754,7 @@ A run that was stopped (`result=stopped`) reports what it saved, not what it pla
 | `VM_E_MODEL_OFFLINE` | 5 | The reading model is not on this computer yet and the download did not get through. | Connect to the internet and run `vault-mirror doctor`. |
 | `VM_E_MODEL_BROKEN` | 5 | The reading model file did not finish downloading. | Delete the folder `<path>`, then run `vault-mirror doctor`. |
 | `VM_E_EMBED_FAILING` | 5 | Too many notes failed to read into the model, so the sync stopped. What was done is saved. | Run `vault-mirror doctor`. |
+| `VM_E_READER` | 5 | The reading model stopped before it answered. | Try the search again. |
 | `VM_E_DISK_FULL` | 5 | The disk is full, so the index could not be saved. Your notes were not touched. | Free about 500 MB, then run `vault-mirror sync`. |
 | `VM_E_BUSY` | 6 | Another sync is still running (41% done). Nothing is wrong. | Wait for it, or ask "is my vault in sync?" |
 | `VM_E_LOCK_LOST` | 6 | Another sync took over, so this one stopped. Nothing is wrong. | Ask "is my vault in sync?" |
@@ -793,7 +798,8 @@ Small files, one job each, names that say what is inside (aim under 300 lines; n
 bin/vault-mirror.js              shebang; calls src/cli/main.js
 src/cli/main.js                  parse, dispatch, map errors to exit codes
 src/cli/output.js                human and JSON writers, progress line
-src/cli/commands/                init.js sync.js search.js status.js rebuild.js doctor.js
+src/cli/commands/                init.js sync.js search.js status.js rebuild.js doctor.js mcp.js
+src/mcp/                         tools.js server.js session.js reader.js reader-child.js cli.js where.js shape.js setup.js   (section 21)
 src/config/                      config.js guards.js
 src/vault/                       read-only-fs.js walk.js frontmatter.js obsidian-registry.js
 src/chunker/                     index.js blocks.js clean.js pack.js       (the counter is passed in)
@@ -806,12 +812,12 @@ src/words/                       tokens.js table.js bm25.js store.js        (the
 src/screen/                      screen.js                                  [S]
 src/status/                      checks.js
 src/errors.js  src/log.js  src/rule-text.js  src/version.js
-tests/unit/  tests/acceptance/  tests/fixtures/vault/  tests/fixtures/many-vaults/  tests/helpers/
+tests/unit/  tests/mcp/  tests/acceptance/  tests/fixtures/vault/  tests/fixtures/many-vaults/  tests/helpers/
 docs/                            SPEC.md BENCHMARKS.md FAQ.md assets/
 examples/                        CLAUDE.md AGENTS.md (the rule, ready to copy)
 ```
 
-Dependency direction: `cli → sync, search, status → chunker, embed, words, store, engine, vault → config, errors, log` (`words` uses `store` and nothing above it). `chunker` imports nothing outside its folder and is testable with strings alone. `vault` cannot import `store`. Each folder's public API is typed with JSDoc typedefs.
+Dependency direction: `cli, mcp → sync, search, status → chunker, embed, words, store, engine, vault → config, errors, log` (`words` uses `store` and nothing above it). `chunker` imports nothing outside its folder and is testable with strings alone. `vault` cannot import `store`. Each folder's public API is typed with JSDoc typedefs.
 
 ---
 
@@ -971,6 +977,81 @@ Everything here can be met by an unattended build on macOS arm64 with one Node v
 3. **Other machines behave like the build machine.** Windows, Intel Macs, 8 GB laptops, cloud-offloaded vaults and agent shells that kill long commands are unmeasured. Guards: `doctor`'s own speed estimate, a worker count that is automatic and conservative, a first sync at low priority, a sync that survives sleep, pause and kill, `--detach`, "not downloaded is not deleted", and docs that promise only what was run.
 
 One more, named so nobody builds a claim on it: **the index finds the right note about two times in three when a question is asked in other words** (one small test, one author). The tool's answer is the agent rule's fallback to searching the files, and an honest README; it is not a number to print.
+
+---
+
+## 21. The MCP server
+
+Added after v0.1.0. `vault-mirror mcp` serves the Model Context Protocol over stdio, so an AI app reaches the index through named tools. The commands and the rule are unchanged; the server is a second way in. User-facing text: `docs/MCP.md`.
+
+### What it promises
+
+Six things, each from the README: add it once and search from any project; any MCP app, with or without a terminal; a named search tool, so no shell command to approve; structured results; faster repeat searches; and **no tool that writes to a vault**.
+
+### The tools
+
+Three, defined in one file, `src/mcp/tools.js`. That list is the whole surface.
+
+| Tool | Takes | Hands back | Writes |
+| --- | --- | --- | --- |
+| `search_vault` | `query`; optional `other_wordings` (up to 4) and `limit` (1 to 20) | `results` and `exactWords` (each passage: `note`, `heading`, `path`, `line`, `score` or `words`, `link`, `text`, and `caution` when flagged), `index` (`notes`, `passages`, `notesWaiting`, `syncRunning`), `words` (`inPassages`, `inTheirNotes`), `notices`, `modelWasLoaded`, `tookMs` | nothing |
+| `vault_status` | nothing | `inStep`, the counts of section 11, `syncRunning`, `lastSync`, `failedChecks`, `next` | nothing in the vault (as `status`: it may bring the engine or the exact-words table in step) |
+| `sync_index` | optional `wait_seconds` (0 to 45, default 20) | `started`, `finished`, `inStep`, `changes`, `passages`, `seconds`, or `running` with a percent, and `next` | the index folder only |
+
+Rules that hold for every tool:
+
+- **No tool takes a path, a file name, or text to save.** Each input schema lists its fields and refuses any other (`additionalProperties: false`), so a call that carries `path` is refused by the SDK before tool code runs. There is no way to pass `--allow-mass-delete`: a safety stop of section 10 comes back as its own sentence, and only a person at a terminal can wave it through.
+- **Annotations say the same thing to the client.** `search_vault` and `vault_status` carry `readOnlyHint: true`. `sync_index` does not, carries `destructiveHint: false`, and its description says where it writes.
+- **A result is `structuredContent`** that matches the tool's `outputSchema`, and the same object as one line of text, as the MCP spec asks for older clients. Lean on purpose: one copy of each passage, no empty lists, no timings table.
+- **An error is an `isError` result:** the one plain sentence of section 14, a line break, `Next:` and the one next action. Where a tool can do the next action, it names the tool (`Call sync_index, then search again.`) and not a shell command.
+- **A search never syncs.** The command's quick sync before a search (section 6) is left out: a tool that only reads must not start writing because the vault changed. It compares the vault with the index by size and date (the shallow plan of section 10, which reads no note) and reports `notesWaiting` with a notice that names `sync_index`.
+- **`words` is two counts, not a claim** (section 18): the words in the passages handed back, and the words in the saved passages of the notes they came from.
+
+### Which vault
+
+The server must work from whatever folder an app starts it in, so it locates the vault exactly as the commands do: `config.json` in the home folder (section 4), where `init` recorded the one current vault. The home folder is `~/.vault-mirror`, or `VAULT_MIRROR_HOME`, or the server's own `--home <folder>` (which sets that variable for the server and everything it starts, for apps where setting a variable is awkward).
+
+- The settings are read again on every call. A vault set up after the server started is found without a restart, and so is a switch made by `init`.
+- `--vault <folder>` pins a server to one vault. When the vault in the settings is another one, every tool refuses with `VM_E_OTHER_VAULT`. A pin is a check, not a second registry: settings such as `exclude` live with the current vault only (section 4), so serving a vault that is not current would sync it with another vault's settings.
+- Several vaults are several server entries, each with its own home folder. Nothing was added to `config.json`.
+- Not set up is not a start-up failure. The server starts, and its first tool call answers `No vault is set up yet.` with one next step, where the person's AI can read it. A client shows a start-up failure, if at all, as "server failed", which tells a person in a chat app nothing. A wrong flag is a start-up failure: exit 2, one sentence on stderr, nothing on stdout.
+
+### What runs, and what holds the index
+
+An MCP server lives as long as the app that started it. Two measurements shaped everything here: the reading model takes about 0.6 GB while loaded, and ruvector keeps an index file locked until its process exits (section 9).
+
+| Process | Lives | Holds |
+| --- | --- | --- |
+| The server (`src/mcp/server.js`) | as long as the client keeps stdin open | the saved vectors and the exact-words table in memory, read from the sidecar. No lock, no open index file, no model |
+| The reader (`src/mcp/reader-child.js`) | from the first search until 5 minutes pass without one (`--idle-minutes`), or the server ends | the reading model. It opens no index and no vault file |
+| A command (`status --json`, or a detached `sync --json`) | until its work is done | whatever that command holds, released at its exit |
+
+- **Search runs in the server, on the `exact` engine.** It loads `vectors.f32` through the manifest and scans it (section 9's fallback engine, the one `status --verify` checks ruvector against, so scores agree to four places). It never loads ruvector and never takes `index.lock`. A server left open all day therefore keeps no `sync`, `search` or `rebuild` waiting, which a server holding the ruvector file open would. It stats `manifest.json` before each search and loads again when a save has replaced it; a data folder removed by a tidy rewrite in the middle of a search (section 8) is read again from `CURRENT`, once.
+- **The reader is a child process, not a thread.** Ending a process gives all of the model's memory back; ending a worker thread gave back about half in a trial. It leaves when asked, at the idle limit, and by itself on `disconnect` if the server is killed. Nothing is loaded until the first search.
+- **Padding.** The library fixes its padding for the life of a process (section 9). The reader starts at 64 tokens, where a question takes about half the time it takes at the full 128. A question that does not fit is sent back unread, and the server replaces the reader with one at the full length, which stays until idle. No question is ever cut short to fit.
+- **`vault_status` and `sync_index` run the commands.** `status` can open the ruvector file to bring it in step, and `sync` always does at its end; in the server either would pin the lock until the app quit. As short processes they let go at exit, and their answers are the commands' own. `sync_index` starts the same detached sync as `sync --detach`, waits up to `wait_seconds` (kept under the 60 s that clients commonly allow a tool), then answers with the result or the progress. It never starts a second sync beside a running one.
+- **During a sync** a search answers from what is saved so far and says `A sync is running (41% done). This search covers what is saved so far.` It takes no lock, so it cannot wait on one. If a first sync has saved nothing yet, the answer is `VM_E_BUSY` with `Call vault_status …, then try again.`
+
+### Standard output is the protocol
+
+One stray line on stdout breaks an MCP conversation, and the embedding library prints when it loads. From start-up the server holds stdout and stderr for good (`holdAlways` in `src/embed/quiet.js`): the SDK's transport is handed a stream that writes to the real stdout, notices (the ready line, the one-time model download and its progress) go to stderr, and anything else a library prints goes to `logs/debug.log`. The reader and the commands are started with their own pipes, never the server's stdout. Messages end with a line feed alone on every system.
+
+### Tests
+
+| Where | What it shows |
+| --- | --- |
+| `tests/unit/mcp.test.js` (no model, no engine) | The tool list is exactly three. No tool can write to a vault: every accepted field is listed and none names a path or carries text; unknown fields are refused; only `sync_index` is not read-only and it says where it writes; `src/mcp/` calls no fs write API, imports one writer function (`ensureDir`, for the index folder), never loads the engine or takes a lock. A client sees the schemas and hints. Results pass the output schemas. Errors are one sentence and one next step. The reader: lazy start, reuse, idle stop, the long-question restart, a dead or silent child. Options and `--setup`. Over real stdio: no vault set up, a vault with nothing synced, a pinned server refusing another vault; stdout holds protocol messages only; the vault's checksum listing is unchanged |
+| `tests/mcp/e2e.test.js` (needs the model) | The real server, driven by the SDK's client, on a copy of the fixture vault, with the write spy of section 5 loaded into the server and every process it starts. Lists tools; runs every tool; checks the structured results against the command's own; a repeat search is faster than the first and reports the model as loaded; a long question; calls that pass a path are refused. The vault's checksum listing (path, size, date, SHA-256) is equal before and after. While the server is open, `sync` and `search` in another process succeed, and the server sees the change. A search during a sync answers. At the end: every stdout line was a protocol message, the spy log is empty, and no server or reader process is left |
+
+### What was decided the conservative way
+
+| Question | Built | The other choice |
+| --- | --- | --- |
+| May a search start a sync by itself? | No. It reports what is waiting | The command's quick sync of up to 20 passages |
+| May the server keep anything running outside MCP? | Only a reader that ends with the server or after 5 idle minutes, and a sync that an explicit `sync_index` call started | A shared helper that outlives the app, as the unreleased warm-mode trial did |
+| May a tool pass `--allow-mass-delete`, or run `rebuild` or `init`? | No. They stay commands a person runs | Tools for them |
+| Does the server download the reading model? | Yes, once, exactly as the commands do, with progress on stderr | Refuse and send the person to `doctor` |
+| Can one server serve several vaults? | No. One entry per vault, one home folder each | A `vault` argument on every tool, and per-vault settings in `config.json` |
 
 ---
 

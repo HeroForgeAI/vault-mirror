@@ -6,6 +6,15 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ## [Unreleased]
 
+### Added
+
+- An MCP server: `vault-mirror mcp`, over stdio, on the official MCP SDK. Add it to an app once and its AI can search your vault with a named tool from any project, with no rule line per project and no shell command to approve. Three tools: `search_vault` (structured results: note, heading, file, line, score and `obsidian://` link for each passage, plus the exact-words list), `vault_status` (is the index in step with the vault) and `sync_index` (brings the index up to date; it writes only to vault-mirror's own index folder). **The server has no tool that writes to a vault**, and a call that tries to pass a path is refused. A unit test lists the tools and checks that; an end-to-end test checksums the fixture vault before and after every tool has run, under the same write spy the commands are tested with.
+- The server keeps the reading model loaded between searches, in a helper process that starts with the first search and stops after five minutes without one (`--idle-minutes` changes that). A repeat search skips loading the model. The helper takes about 0.6 GB while it is alive. The server itself never opens the index file and holds no lock, so `sync` and `search` in a terminal are never kept waiting by it.
+- `vault-mirror mcp --setup` prints the lines that add the server to Claude Code, Codex and Claude Desktop, with full paths. It changes no file.
+- `vault-mirror mcp --home <folder>` and `--vault <folder>`: which settings a server reads, and a pin that makes a server refuse to answer from any other vault. Two vaults in one app are two entries, each with its own home folder.
+- `docs/MCP.md`: what the server is, setup for each app, the tools, what it can and cannot do, and troubleshooting.
+- A second runtime dependency, pinned exactly: `@modelcontextprotocol/server` 2.3.1. Only `vault-mirror mcp` loads it.
+
 ## [0.1.1] - 2026-10-08
 
 vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still only ever read. Upgrading reads no note again: nothing changed in how notes are cut or read, and an index made by 0.1.0 is kept.

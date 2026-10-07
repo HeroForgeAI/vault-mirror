@@ -14,4 +14,6 @@ You can leave these alone. `init` writes one file, `~/.vault-mirror/config.json`
 
 `VAULT_MIRROR_HOME` moves the index folder. `RUVECTOR_CACHE_DIR` moves the model cache (ruvector's own setting). All commands and flags: `vault-mirror --help`.
 
-One vault is current at a time. `vault-mirror init <other vault>` switches, and each vault keeps its own index, so switching back costs nothing.
+The MCP server (`vault-mirror mcp`) reads the same settings file. It takes three options of its own: `--home <folder>` (the same as `VAULT_MIRROR_HOME`, for that server), `--vault <folder>` (serve this vault only) and `--idle-minutes <n>` (how long the reading model stays loaded after a search; the default is 5). See [MCP.md](MCP.md#which-vault-it-serves).
+
+One vault is current at a time. `vault-mirror init <other vault>` switches, and each vault keeps its own index, so switching back costs nothing. To use two vaults side by side, give each its own home folder with `VAULT_MIRROR_HOME`.

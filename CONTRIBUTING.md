@@ -84,11 +84,12 @@ No pull request may cross these, however good the rest of it is.
 1. **The tool never writes, moves or deletes anything inside a vault.**
 2. **It makes no network request**, except the one-time download of the reading model.
 3. **No telemetry.** Nothing is counted, reported or phoned home.
-4. **No new runtime dependency without an issue first.** There is one today: `ruvector`.
+4. **No new runtime dependency without an issue first.** There are two today: `ruvector`, and `@modelcontextprotocol/server` (the official MCP SDK, loaded only by `vault-mirror mcp`).
 5. **The pinned `ruvector` version changes only through the maintainers' check.** Every index depends on that exact version's behaviour, so a maintainer bumps it by hand after the flat-index self-test and the full acceptance run. The upgrade gate is described in [`docs/SPEC.md`](docs/SPEC.md). A pull request that moves the pin or its shrinkwrap entries will be closed.
 6. **Tests use invented notes only.** Never anyone's real notes, and never pages copied from a documentation site.
 7. **Messages a user sees stay in plain words, with one next action.**
-8. **No background process is ever started unless the user turns one on.**
+8. **No background process is ever started unless the user turns one on.** The MCP server is one the user adds to an app. Its reader lives only while that app keeps the server open, and stops after a few idle minutes.
+9. **The MCP server gets no tool that writes to a vault.** No tool that takes a path or text to save, and no tool that creates, edits, moves or deletes a note.
 
 ## How the code keeps them
 
