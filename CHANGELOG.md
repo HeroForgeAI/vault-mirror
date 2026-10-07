@@ -8,6 +8,7 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ### Changed
 
+- README: says who builds and maintains the project (Mak Allen of the HeroForge.AI team) and where to find him on X.
 - Documentation only: a new README first screen with a picture of a real result, a "Set it up" section with steps for a person, steps for an AI and four commands to type by hand, a new demo recording, and a labelled figure of what a search returns. Long reference material moved to `docs/FIRST-RUN.md`, `docs/HOW-IT-WORKS.md` and `docs/COMPARISON.md`. The README now names `~/.ruvector/models/`, where the ruvector library keeps the reading model, in the safety facts and the removal steps. Recall counts are no longer printed in the README; they are in `docs/BENCHMARKS.md`.
 
 ## [0.1.0] - 2026-10-07

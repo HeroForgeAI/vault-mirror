@@ -36,7 +36,10 @@ Then `vault-mirror init "<folder>"`, `vault-mirror sync` and `vault-mirror searc
 <p align="center">
   <a href="https://github.com/HeroForgeAI/vault-mirror/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/HeroForgeAI/vault-mirror"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/HeroForgeAI/vault-mirror"></a>
+  <a href="https://x.com/mrmakallen"><img alt="Built by Mak Allen, @mrmakallen on X" src="https://img.shields.io/badge/built%20by-%40mrmakallen-000000?logo=x&logoColor=white"></a>
 </p>
+
+<p align="center">Built and maintained by <b>Mak Allen</b> of the <a href="https://github.com/HeroForgeAI">HeroForge.AI</a> team. Find him on X: <a href="https://x.com/mrmakallen">@mrmakallen</a>.</p>
 
 ## Set it up
 
@@ -418,6 +421,13 @@ Planned, with no dates:
 - A warm mode: an optional helper that keeps the model loaded, so a second search skips the 0.26 s model load. Off by default.
 - Skip the index safety probe when the index file has not changed since the last good open.
 - An MCP server, for agents that prefer one to a shell command. [What it is planned to bring](#coming-soon-an-mcp-server).
+
+## Who makes this
+
+vault-mirror is built and maintained by **Mak Allen**, a member of the [HeroForge.AI](https://github.com/HeroForgeAI) team. The project lives under the HeroForgeAI organization on GitHub, not under a personal account, so here is where to find the person behind it:
+
+- **X:** [@mrmakallen](https://x.com/mrmakallen). Say hello, show what you built with it, or ask a quick question.
+- **Bugs and ideas:** [open an issue](https://github.com/HeroForgeAI/vault-mirror/issues) here, so the answer helps the next person too.
 
 ## Credits
 
