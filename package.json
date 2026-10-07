@@ -14,7 +14,9 @@
     "semantic-search",
     "vector-search",
     "local-first",
-    "cli"
+    "cli",
+    "mcp",
+    "mcp-server"
   ],
   "homepage": "https://github.com/HeroForgeAI/vault-mirror#readme",
   "bugs": {
@@ -34,6 +36,7 @@
     "src",
     "examples",
     "docs/BENCHMARKS.md",
+    "docs/MCP.md",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
@@ -45,11 +48,13 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test \"tests/unit/*.test.js\"",
+    "test:mcp": "node --test \"tests/mcp/*.test.js\"",
     "acceptance": "node tests/acceptance/run.mjs --vault tests/fixtures/vault",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src bin tests"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
     "ruvector": "0.3.3"
   },
   "overrides": {
@@ -58,6 +63,7 @@
   "devDependencies": {
     "eslint": "^9.0.0",
     "typescript": "^5.6.0",
-    "@types/node": "^24.0.0"
+    "@types/node": "^24.0.0",
+    "@modelcontextprotocol/client": "2.3.1"
   }
 }

@@ -7,3 +7,5 @@ export const CHUNKER_VERSION = 1;
 export const SCHEMA = 1;
 /** The versions this release was tested with. doctor warns when a loaded one differs. */
 export const PINS = { ruvector: '0.3.3', core: '0.1.32', native: '0.1.30' };
+/** The MCP SDK the server is built on, pinned exactly. Only `vault-mirror mcp` loads it. */
+export const MCP_SDK = { name: '@modelcontextprotocol/server', version: '2.3.1' };

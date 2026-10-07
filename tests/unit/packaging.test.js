@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { RULE_BLOCK, RULE_LINE } from '../../src/rule-text.js';
-import { PINS, TOOL_VERSION } from '../../src/version.js';
+import { PINS, MCP_SDK, TOOL_VERSION } from '../../src/version.js';
 import { DEFAULT_MODEL, MODELS } from '../../src/embed/models.js';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -14,9 +14,10 @@ const sources = (dir) => fs.readdirSync(path.join(ROOT, dir), { withFileTypes: t
 /** Code without comments, so a comment may mention what the code must not do. @param {string} text */
 const code = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-test('the only runtime dependency is ruvector at its pin, and overrides pins @ruvector/core', () => {
+test('the runtime dependencies are ruvector and the MCP SDK, each at an exact pin, and overrides pins @ruvector/core', () => {
   const pkg = JSON.parse(read('package.json'));
-  assert.deepEqual(pkg.dependencies, { ruvector: PINS.ruvector });
+  assert.deepEqual(pkg.dependencies, { [MCP_SDK.name]: MCP_SDK.version, ruvector: PINS.ruvector });
+  assert.equal(pkg.devDependencies['@modelcontextprotocol/client'], MCP_SDK.version, 'the test client is the same release as the server');
   assert.deepEqual(pkg.overrides, { '@ruvector/core': PINS.core });
   assert.equal(pkg.version, TOOL_VERSION);
   assert.equal(pkg.engines.node, '>=20');
@@ -32,6 +33,20 @@ test('the shrinkwrap lists all five platform packages at the pinned versions', (
   }
   assert.equal(lock.packages['node_modules/ruvector'].version, PINS.ruvector);
   assert.equal(lock.packages['node_modules/@ruvector/core'].version, PINS.core);
+});
+
+test('the shrinkwrap pins the MCP SDK and what it brings, and only the mcp command loads it', () => {
+  const lock = JSON.parse(read('npm-shrinkwrap.json'));
+  assert.equal(lock.packages[`node_modules/${MCP_SDK.name}`].version, MCP_SDK.version);
+  assert.equal(lock.packages['node_modules/@modelcontextprotocol/core'].version, MCP_SDK.version);
+  assert.ok(!lock.packages[`node_modules/${MCP_SDK.name}`].dev, 'a runtime package');
+  assert.equal(lock.packages['node_modules/@modelcontextprotocol/client'].dev, true, 'the client is for tests only');
+  // What the SDK needs at run time: its own core package and zod. Nothing else.
+  assert.deepEqual(Object.keys(lock.packages[`node_modules/${MCP_SDK.name}`].dependencies).sort(), ['@modelcontextprotocol/core', 'zod']);
+  // A search, a sync and a status never pay for it: the SDK is imported by src/mcp/server.js alone, and that file is loaded on demand.
+  const importers = sources('src').filter((f) => /from '@modelcontextprotocol\//.test(read(f)));
+  assert.deepEqual(importers, [path.join('src', 'mcp', 'server.js')]);
+  for (const file of sources('src')) assert.ok(!/^import .* from '(\.\.\/)+mcp\/server\.js'/m.test(read(file)), `${file} loads the server up front`);
 });
 
 test('the rule text equals examples/CLAUDE.md and keeps its fixed wording', () => {

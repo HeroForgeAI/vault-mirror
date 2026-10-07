@@ -12,6 +12,7 @@ export function writeOut(text) { return realOut(text); }
 export function writeErr(text) { return realErr(text); }
 
 let held = false;
+let always = false;
 
 /**
  * Start holding library output.
@@ -31,7 +32,7 @@ export function hold(sink) {
 }
 
 export function release() {
-  if (!held) return;
+  if (!held || always) return;
   held = false;
   /** @type {any} */ (process.stdout).write = realOut;
   /** @type {any} */ (process.stderr).write = realErr;
@@ -39,3 +40,13 @@ export function release() {
 }
 
 export function isHeld() { return held; }
+
+/**
+ * Hold for the whole life of the process, for a server whose stdout is a protocol channel: one stray
+ * line there breaks the conversation. After this, `release` does nothing.
+ * @param {(line: string) => void} sink
+ */
+export function holdAlways(sink) { hold(sink); always = true; }
+
+/** The real stdout with its callback, for the one stream that owns the channel. @param {string | Uint8Array} chunk @param {(err?: Error | null) => void} [done] */
+export function rawOut(chunk, done) { return realOut(chunk, done); }

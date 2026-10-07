@@ -19,6 +19,13 @@
 
 export const DEFAULT_MODEL = 'all-MiniLM-L6-v2';
 
+/**
+ * The padding a long-lived reader reads questions at. A question's vector is the same at any padding
+ * that fits it, and the time to read it grows with the padding, so a process that answers many
+ * questions keeps it small. A question that does not fit is read by a reader started at the full length.
+ */
+export const QUESTION_PAD = 64;
+
 /** @type {Record<string, ModelEntry>} */
 export const MODELS = {
   'all-MiniLM-L6-v2': {
