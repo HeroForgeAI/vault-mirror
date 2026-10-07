@@ -1,10 +1,10 @@
 // @ts-check
 // Search: ask the index, return the best passage of each note with a way back to the note.
-// One call gives two lists: the passages closest by meaning, and a short separate list of passages
-// that hold the question's exact words.
+// One call gives one ranked list: the passages closest by meaning, with those that hold the question's
+// exact words moved up (blend.js), and then a short list of exact-word passages the first list left out.
 import path from 'node:path';
 import { loadManifest, withLiveData, fileOf } from '../store/manifest.js';
-import { readRecord } from '../store/sidecar.js';
+import { readRecord, readRange, VECTORS } from '../store/sidecar.js';
 import { liveOwner } from '../store/lock.js';
 import { ensureEngine } from '../engine/build.js';
 import { parseId } from '../engine/engine.js';
@@ -18,7 +18,8 @@ import { VmError } from '../errors.js';
 import { debug, runLine, setLogDir } from '../log.js';
 import { plural } from '../cli/output.js';
 import { wordsFor } from '../words/store.js';
-import { exactWordHits, notAlreadyShown } from './exact-words.js';
+import { exactWordCandidates, mergeWordings, notAlreadyShown } from './exact-words.js';
+import { blend, matchByMeaning, wordsBonus, BLEND_PER_WORDING } from './blend.js';
 
 /** At most `max` characters, whitespace collapsed, never cut inside a word. @param {string} text @param {number} [max] */
 export function snippet(text, max = 400) {
@@ -107,7 +108,8 @@ export function loadWords(indexDir, loaded, save) {
  * ready index, loads nothing and writes nothing, so a process that keeps both in memory can call it
  * again and again.
  * @param {ReadyIndex} ready
- * @param {{ queries: string[], count: number, vaultPath: string, vaultParam: string | null }} opts
+ * @param {{ queries: string[], count: number, vaultPath: string, vaultParam: string | null, blend?: boolean }} opts
+ *   blend false keeps the two lists apart: the first is then by meaning alone
  */
 export async function searchReady(ready, opts) {
   const { embedder, engine, manifest, dataDir, words } = ready;
@@ -143,34 +145,56 @@ export async function searchReady(ready, opts) {
     };
   };
 
-  // The exact-words list. It never fails a search: without it, the list by meaning still stands.
+  // The exact words. They never fail a search: without them, the list by meaning still stands.
   t = performance.now();
-  /** @type {{ notePath: string, n: number, score: number, words: string[] }[]} */
-  let wordHits = [];
+  const blending = opts.blend !== false && Boolean(words);
+  /** @type {{ notePath: string, n: number, score: number, share: number, words: string[], place: number, wording: number }[]} */
+  let candidates = [];
   if (words) {
     const names = Object.keys(manifest.notes);
-    try { wordHits = exactWordHits(words, (i) => record(names[i]), opts.queries).map((h) => ({ notePath: names[h.note], n: h.n, score: h.score, words: h.words })); }
-    catch (e) {
+    try {
+      candidates = exactWordCandidates(words, (i) => record(names[i]), opts.queries, blending ? { perWording: BLEND_PER_WORDING } : {})
+        .map((h) => ({ notePath: names[h.note], n: h.n, score: h.score, share: h.share, words: h.words, place: h.place, wording: h.wording }));
+    } catch (e) {
       if (/** @type {any} */ (e)?.code === 'ENOENT') throw e; // the data folder was replaced: the caller reads again
-      debug(`the exact-words list was left out: ${String(/** @type {any} */ (e)?.message).slice(0, 160)}`);
+      debug(`the exact words were left out: ${String(/** @type {any} */ (e)?.message).slice(0, 160)}`);
     }
+  }
+  const wordHits = mergeWordings(candidates.map((h) => ({ ...h, note: h.notePath })));
+
+  // The blend: a passage that holds at least half of the question's words gains a bonus on its match by meaning.
+  /** @type {import('./blend.js').Blended[]} */
+  let ranked = notes.map((h) => ({ ...h, bonus: 0, blended: h.score, words: [] }));
+  if (blending) {
+    const dims = vectors[0].length;
+    const holders = candidates.filter((h) => wordsBonus(h.share) > 0).map((h) => {
+      const buf = readRange(path.join(dataDir, VECTORS), (manifest.notes[h.notePath].vec + h.n) * 4 * dims, 4 * dims);
+      const own = new Float32Array(dims);
+      for (let i = 0; i < dims && (i + 1) * 4 <= buf.length; i++) own[i] = buf.readFloatLE(i * 4);
+      let score = 0;
+      for (const v of vectors) score = Math.max(score, matchByMeaning(v, own));
+      return { path: h.notePath, n: h.n, score, share: h.share, words: h.words };
+    });
+    ranked = blend(notes, holders, opts.count);
   }
   timings.wordsMs = Math.round(performance.now() - t);
 
   t = performance.now();
-  const results = notes.map((hit, i) => {
+  const round3 = (/** @type {number} */ x) => Math.round(x * 1000) / 1000;
+  const results = ranked.map((hit, i) => {
     const { note, section, path: abs, vaultPath, line, link, snippet: snip, text, passage, flags } = shape(hit.path, hit.n);
-    return { rank: i + 1, score: Math.round(hit.score * 1000) / 1000, note, section, path: abs, vaultPath, line, link, snippet: snip, text, passage, morePassages: hit.morePassages, flags };
+    const row = { rank: i + 1, score: round3(hit.score), note, section, path: abs, vaultPath, line, link, snippet: snip, text, passage, morePassages: hit.morePassages, flags };
+    return blending ? { ...row, words: hit.words, wordsBonus: round3(hit.bonus), blended: round3(hit.blended) } : row;
   });
   const exactWords = notAlreadyShown(wordHits.map((h) => ({ passage: `${h.notePath}#${h.n}`, hit: h })), results)
     .map(({ hit }, i) => ({ rank: i + 1, score: Math.round(hit.score * 100) / 100, words: hit.words, ...shape(hit.notePath, hit.n) }));
   timings.readMs = Math.round(performance.now() - t);
-  return { results, exactWords, timings };
+  return { results, exactWords, blended: blending, timings };
 }
 
 /**
  * @param {import('../sync/run.js').Context} ctx
- * @param {{ queries: string[], count?: number, noSync?: boolean, exactWords?: boolean }} opts
+ * @param {{ queries: string[], count?: number, noSync?: boolean, exactWords?: boolean, blend?: boolean }} opts
  * @param {import('../cli/output.js').Ui} ui
  */
 export async function runSearch(ctx, opts, ui) {
@@ -239,7 +263,7 @@ export async function runSearch(ctx, opts, ui) {
       t = performance.now();
       const words = opts.exactWords === false ? null : loadWords(ctx.indexDir, eng.loaded, !liveOwner(path.join(ctx.indexDir, 'sync.lock')));
       const tableMs = performance.now() - t;
-      const found = await searchReady({ embedder, engine: eng.engine, manifest, dataDir, words }, { queries: opts.queries, count, vaultPath: ctx.vault.real, vaultParam: registry.vaultParam });
+      const found = await searchReady({ embedder, engine: eng.engine, manifest, dataDir, words }, { queries: opts.queries, count, vaultPath: ctx.vault.real, vaultParam: registry.vaultParam, blend: opts.blend ?? v.blend });
       found.timings.wordsMs = Math.round(found.timings.wordsMs + tableMs);
       return { eng, manifest, found };
     }));
@@ -251,5 +275,5 @@ export async function runSearch(ctx, opts, ui) {
   for (const w of eng.warnings) ui.warnings.push(w);
   const tookMs = Math.round(performance.now() - t0);
   runLine('search', { results: results.length, exact_words: exactWords.length, phrasings: opts.queries.length, ms: tookMs }); // never the question text
-  return { query: opts.queries[0], queries: opts.queries, results, exactWords, searched: { notes: manifest.totals.notes, passages: manifest.totals.passages }, inStep, syncNotice, tookMs, timings, engine: eng.engine.name };
+  return { query: opts.queries[0], queries: opts.queries, results, exactWords, blended: found.blended, searched: { notes: manifest.totals.notes, passages: manifest.totals.passages }, inStep, syncNotice, tookMs, timings, engine: eng.engine.name };
 }
