@@ -12,6 +12,8 @@ It reads every note once. After that only changed notes are read. From an AI's s
 
 A search ran before any sync finished. Run `vault-mirror sync`.
 
+If a first sync is already running in the background (`status` says "A sync is running"), do not start a second one. In its first moments a search can still give this answer. Wait a little and ask `vault-mirror status` again.
+
 ## "Another sync is still running (41% done). Nothing is wrong."
 
 Wait for it, or ask "is my vault in sync?" Searches work in the meantime and cover what is saved so far. There is no lock file to delete.
@@ -39,3 +41,15 @@ Run `vault-mirror rebuild`. A rebuild is always safe. If it happens again, `logs
 ## npm reports a permission error (EACCES) during install
 
 Do not use `sudo`. Run `npm config set prefix ~/.npm-global`, add `~/.npm-global/bin` to your path, and install again.
+
+## "command not found: vault-mirror" after a successful install
+
+npm put the command in a folder your shell does not look in. Run `npm prefix -g` to see npm's folder, add its `bin` folder to your PATH, and open a new terminal.
+
+## "This needs Node 20 or newer."
+
+`vault-mirror doctor` says this when Node is too old. Install the current Node from nodejs.org, then run `vault-mirror doctor` again. `node -v` shows the version you have.
+
+## npm says git is missing during install
+
+The install line fetches a pinned tag from GitHub, which needs git. Install git, check with `git --version`, and install again.
