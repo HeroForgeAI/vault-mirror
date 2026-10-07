@@ -9,6 +9,7 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 ### Added
 
 - `search` ends with one line that says how much text came back and how much the notes it came from hold, for example "Returned about 590 words in 5 passages, from 5 notes that hold about 9,200 words." It counts words, not tokens, from records the search has already read, and works out no multiplier. The line goes to stderr with the other notices, so the result lists on stdout are unchanged. `--json` carries the same counts as `reading: { passages, words, notes, noteWords }`. `--quiet`, or `"readingSummary": false` in the settings, turns the line off.
+- `docs/GETTING-NOTES-IN.md`: how to turn emails, PDFs, Word files and Notion pages into Markdown notes the tool can read, and what to keep out. Linked from the README.
 
 ### Changed
 

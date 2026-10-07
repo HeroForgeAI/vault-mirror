@@ -337,6 +337,8 @@ It does not make your AI more correct. What changes as a vault grows is how much
 
 **If ranking quality is what you need, use [qmd](https://github.com/tobi/qmd): it is the stronger search tool.** vault-mirror keeps two lists side by side and puts its effort into the read-only and 1:1 guarantees. How it compares with qmd, basic-memory, Smart Connections and obsidian-brain, feature by feature: [docs/COMPARISON.md](docs/COMPARISON.md).
 
+Both kinds of search read Markdown notes. If what you know is still in emails, PDFs, Word files or Notion, start with [Getting your notes into Markdown](docs/GETTING-NOTES-IN.md).
+
 It is also not a privacy wall (passages a search returns go to your AI's service), not a background service (no daemon, no file watcher), not a backup, and not compliance tooling. Your AI can still edit notes if you ask it to. That is your AI, not this tool.
 
 ## Speed, measured
@@ -378,6 +380,13 @@ A few hundred notes take a few minutes. A very large vault of about two thousand
 <summary><b>What in a note is read?</b></summary>
 
 Only `.md` files. Links and embeds are turned into the words a reader would see, and aliases in a note's properties are searchable by meaning. Query blocks such as dataview and mermaid are dropped. Images, PDFs and `.canvas` files are counted and never read. The reading model was trained on English; other languages are not yet tested. A note written entirely in a language without spaces between words (Japanese, for example) is counted as empty and left out; `status --list` names it.
+
+</details>
+
+<details>
+<summary><b>My notes are in emails, PDFs, Word files or Notion. Can it read those?</b></summary>
+
+Not directly. It reads Markdown notes (`.md` files) only, and other files in a vault are counted and left alone. Your AI or a free converter can turn the rest into Markdown notes first: [Getting your notes into Markdown](docs/GETTING-NOTES-IN.md).
 
 </details>
 
