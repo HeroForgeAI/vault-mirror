@@ -270,6 +270,8 @@ Nothing runs in the background and nothing watches your files. A sync runs when 
 
 For engineers: a small Node command-line tool on [ruvector](https://github.com/ruvnet/ruvector), with incremental sync by content fingerprint, passages cut at headings and sized in real tokens, an exact (flat) index, real deletes, a reading model that runs on your computer, and one direct runtime dependency. The six stages of a sync and each engineering decision with its reason are in [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md). The full design is in [docs/SPEC.md](docs/SPEC.md).
 
+The reading model is all-MiniLM-L6-v2. Before it became the default, every reading model ruvector 0.3.3 names was run on the same small set of questions: all-MiniLM-L6-v2, all-MiniLM-L12-v2, gte-small, bge-small-en-v1.5, bge-base-en-v1.5 and e5-small-v2, with plain keyword search beside them for scale. The default was chosen because it is the smallest and the fastest, and nothing else did clearly better on that small test. The table, the method and what was not tested: [Reading models we compared](docs/BENCHMARKS.md#reading-models-we-compared).
+
 ### How you know every note is in the index
 
 After a sync, every note that belongs in the index is in it, once, as it was on disk when the sync ran. Edit a note, and the next sync replaces its old passages. Rename one, and it moves. Delete one, and it is gone from the index. That is what "1:1" means here.
@@ -280,7 +282,7 @@ It prints `In step: yes` only when nine named checks all hold. `status --verify`
 
 ## Built on ruvector
 
-[ruvector](https://github.com/ruvnet/ruvector) is an open-source vector engine by rUv (Reuven Cohen, [@ruvnet](https://github.com/ruvnet)). It is where finding by meaning comes into vault-mirror: it turns each short passage of a note into a list of numbers that stands for its meaning, keeps those numbers on your computer, and finds the closest ones when you ask. vault-mirror uses it as a library and adds the parts around it: the sync that keeps the index matched to the vault, the read-only guarantee, the cutting of notes into passages, and the check that the two are in step. The reading model runs on your computer. You do not install or set up ruvector yourself; it comes with vault-mirror. Finding by meaning has limits: it works best when your question shares a word or two with the note, and it can miss.
+[ruvector](https://github.com/ruvnet/ruvector) is an open-source vector engine by rUv (Reuven Cohen, [@ruvnet](https://github.com/ruvnet)). It is where finding by meaning comes into vault-mirror: it turns each short passage of a note into a list of numbers that stands for its meaning, keeps those numbers on your computer, and finds the closest ones when you ask. vault-mirror uses it as a library and adds the parts around it: the sync that keeps the index matched to the vault, the read-only guarantee, the cutting of notes into passages, and the check that the two are in step. The reading model runs on your computer ([which one, and why](docs/BENCHMARKS.md#reading-models-we-compared)). You do not install or set up ruvector yourself; it comes with vault-mirror. Finding by meaning has limits: it works best when your question shares a word or two with the note, and it can miss.
 
 Thank you, rUv ([@ruvnet](https://github.com/ruvnet)). vault-mirror exists because ruvector does the hard part well, and because [obsidian-brain](https://github.com/ruvnet/obsidian-brain) showed the way.
 

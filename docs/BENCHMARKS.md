@@ -171,6 +171,59 @@ Limits:
 - A hit means the right note was listed. It does not mean the passage shown answered the question.
 - Not measured: any other vault, any other language, or a question writer who had not seen the notes.
 
+## Reading models we compared
+
+Before the default was fixed, every reading model that `ruvector` 0.3.3 names in its code was run through ruvector's own embedder and scored on the same questions. This was a study outside the tool: each model was selected with `initOnnxEmbedder({ modelId, maxLength })` in a small test harness. vault-mirror 0.1.0 itself ships one model, the default.
+
+| | |
+| --- | --- |
+| Machine | Apple M4 Max, 16 cores, 64 GB, Node 24.15.0 |
+| Engine | `ruvector` 0.3.3 |
+| Date | Oct 6, 2026 |
+| `maxLength` | written after each model's name (`@128`, `@256`): the padding length passed to the library. The table shows each model at its best tested setting, and bge-small-en-v1.5 at both |
+| Load | another job was using about 4 cores (load average 7 to 15 on 16 cores), so every speed is **busy** and rough. The two-to-one speed ratio between the default and the 134 MB models held in every pass, including a second person's re-run with 2 workers |
+
+**The question set.** A small in-house set, not a public benchmark: 60 questions, each with one known right note, all written by one person after reading the notes. Half were asked of the practice vault (176 notes of public English help pages), half of a 300-note sample of a private vault that is not in this repo, so a reader cannot repeat this run.
+
+- **Reworded** (30): worded the way a person would ask, avoiding the note's own words.
+- **Exact** (30): a phrase quoted from the note. Most were sentences; 7 of the 30 were one or two words.
+
+A question counts as found when the right note is among the first 3 notes returned. The scores below are right notes found, out of 30, 30 and 60.
+
+**What was not tested.**
+
+- The tool's own chunker. The study cut passages at 180 words (and at 90 as a check, which moved the default by one question); the tool budgets 110 real tokens.
+- Any model other than the default inside vault-mirror. The others ran through ruvector's embedder in the harness only.
+- Any other machine, and a quiet machine.
+- The whole private vault. The 300-note sample is an easier haystack.
+- Text outside these two sets, and any language other than English. All six are English models.
+- Models outside ruvector's list. None was run.
+- bge-base-en-v1.5 with the pooling its model card describes, and e5-small-v2 at 512.
+
+| Model | Numbers per passage | Download | Downloaded and ran through ruvector | Same vector size from the worker pool | Reworded (30) | Exact (30) | All (60) | Passages a second, 4 workers | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **all-MiniLM-L6-v2** @128 | 384 | about 90 MB | Yes | Yes | 22 | 20 | 42 | about 41 | **The default** |
+| gte-small @128 | 384 | 134 MB | Yes | Yes | 19 | 24 | 43 | about 21 | The one alternative worth a look |
+| bge-small-en-v1.5 @256 | 384 | 134 MB | Yes | Yes | 20 | 22 | 42 | about 9.5 | No gain, and about four times slower at this setting |
+| bge-small-en-v1.5 @128 | 384 | 134 MB | Yes | Yes | 20 | 20 | 40 | about 21 | No gain |
+| all-MiniLM-L12-v2 @128 | 384 | 134 MB | Yes | Yes | 20 | 21 | 41 | about 21 | About twice the cost, no gain |
+| bge-base-en-v1.5 @128 | 768 | 437 MB | Yes, on one thread | No: 384 numbers came back where 768 were expected, with no error | 18 | 18 | 36 | not run (about 1.6 on one thread) | Not used |
+| e5-small-v2 @256 | 384 | 134 MB | No: the download address returned 404. Scored with the file placed by hand | Yes, with the file placed by hand | 18 | 17 | 35 | about 9.5 | Not used |
+| For scale: keyword count, no model | | | | | 8 | 27 | 35 | | The fallback an AI already has |
+| For scale: BM25, no model | | | | | 15 | 30 | 45 | | Best-case keyword search |
+
+**Two rows record what we observed on Oct 6, 2026 with `ruvector` 0.3.3 on this machine,** and nothing more than that. With bge-base-en-v1.5, the worker pool returned 384 numbers per passage where 768 were expected; on a single thread the model ran. For e5-small-v2, the address the library downloads from returned 404. We did not look into the cause of either. Not yet reported upstream; we will.
+
+**Why all-MiniLM-L6-v2 is the default.** It is the smallest download and the fastest, about twice as fast as the next group, and no other model did better on this set by a margin worth its cost. The best other score was 43 of 60 against 42. Question by question, gte-small found 9 that the default missed and the default found 8 that gte-small missed. It is also ruvector's own default.
+
+**gte-small is the one alternative worth a look.** It scored highest on exact phrases (24 against 20) and lower on reworded questions (19 against 22). Neither gap is outside the noise of a set this size, so that is a lean and not a finding. It costs a 134 MB download and a first sync about twice as long. It is not in the tool's model table, because it has not been run inside the tool.
+
+**The keyword rows are there for scale.** The reworded questions avoid the note's own words, which is the worst case for keyword search, and the exact questions quote the note, which is the best case. So those rows show what each method is for, not which is better. Keyword search found more of the exact questions than any model did, and that is why a search also returns an exact-words list and why the rule `init` writes sends an AI to the files when the passages do not answer.
+
+**How far to trust this.** In a set of 60, one question is under 2 points, and 42 of 60 means the true rate is somewhere between about 57% and 80%. A real difference of 10 points between two models, in either direction, could hide here. So the finding is "no large gain from any other model", not "the models are equally good". **Not a number to print**, as with every recall figure in this file.
+
+The speed column is from the study's harness. The tool's own pipeline reads the practice vault at about 36 passages a second with 4 readers (see the budget table above), with its own smaller passages.
+
 ## Measured again for the README
 
 Same machine and versions, Oct 6, 2026, on branch `feat/exact-words`, practice vault (176 notes, 2,199 passages). Fewer jobs were running than for the tables above, but the machine was not idle: the load average was 4.6 when the first sync started and 5.7 to 6.0 for everything after it. Each repeated command was run 7 times, a cold process each time; the range is written out.
