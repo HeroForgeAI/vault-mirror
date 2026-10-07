@@ -1,6 +1,6 @@
 # What a first run prints
 
-So you know what success looks like. Everything here is real output. The vault is the invented one in [`tests/fixtures/vault`](../tests/fixtures/vault), copied under the name `garden-notes`. Your own names, counts and times will differ.
+So you know what success looks like. Everything here is real output. The vault is 15 invented notes: the one in [`tests/fixtures/vault`](../tests/fixtures/vault) without its edge-case folders, built under the name `garden-notes` by [`docs/demo/setup.sh`](demo/setup.sh). Your own names, counts and times will differ, and the progress figures change a little from run to run.
 
 ## The four commands
 
@@ -53,6 +53,7 @@ Each of these appears only when it applies. None of them means something is wron
 | --- | --- | --- |
 | "Downloading the reading model once (about 90 MB). After this, everything runs on your computer." | The first command that needs the model, usually `doctor` or the first `sync` | Nothing. It is the only download |
 | "Obsidian has not opened this folder as a vault yet, so links to notes will not work. Open it in Obsidian once to fix that." | The folder has never been opened in Obsidian, which is true of any practice or copied vault | Nothing, or open the folder in Obsidian once. File paths in results work either way; only the `obsidian://` line is missing until then |
+| "Open this folder as a vault in Obsidian once, and links will work." | At the top of a search, for the same reason as the line above | The same: nothing, or open the folder in Obsidian once |
 | "Left out the templates folder ..." | The vault has a templates folder | Nothing. Templates are left out by default |
 | "... other files (images, PDFs and the like) are not notes and were not read." | The vault holds files that are not `.md` | Nothing |
 | npm's "packages are looking for funding" | Every npm install | Ignore it. It is npm's own note |

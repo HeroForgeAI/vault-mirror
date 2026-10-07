@@ -1,44 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 352" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="t">What vault-mirror gives your AI</title>
-  <desc id="d">A question, "why is the fruit going black underneath", and what vault-mirror returns: the Problems section of a note called Tomatoes, match 0.42, with the paragraph "Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.", the file and line it came from, and a link that opens that heading in Obsidian. Below: In step: 15 notes on disk = 15 notes in the index (32 passages). The notes are invented.</desc>
-  <style>
-    .s1, .s2, .s3 { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
-    .s1 { animation-delay: .15s; }
-    .s2 { animation-delay: .95s; }
-    .s3 { animation-delay: 1.8s; }
-    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .s1, .s2, .s3 { animation: none; } }
-  </style>
+  <desc id="d">A question, "why is the fruit going black underneath", and what vault-mirror returns: the Problems section of a note called Tomatoes, with the paragraph "Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.", from Garden/Tomatoes.md, line 13. The word "fruit" is marked in both. Below: In step: 15 notes on disk = 15 notes in the index. The notes are invented.</desc>
 
   <!-- the question -->
-  <g class="s1">
-    <text x="20" y="42" fill="#9198a1" font-size="13" font-weight="700" letter-spacing="1.3">YOU ASK</text>
-    <rect x="196" y="8" width="508" height="54" rx="27" fill="#151b23" stroke="#ab7df8" stroke-width="1.5"/>
-    <text x="450" y="43" text-anchor="middle" fill="#f0f6fc" font-size="24">why is the <tspan fill="#ab7df8" font-weight="700" text-decoration="underline">fruit</tspan> going black underneath</text>
-  </g>
+  <text x="6" y="42" fill="#9198a1" font-size="17" font-weight="700" letter-spacing="1.2">YOU ASK</text>
+  <rect x="118" y="5" width="517" height="58" rx="29" fill="#151b23" stroke="#ab7df8" stroke-width="2"/>
+  <text x="376" y="43" text-anchor="middle" fill="#f0f6fc" font-size="25">why is the <tspan font-weight="700" stroke="#5c4a14" stroke-width="9" stroke-linejoin="round" paint-order="stroke">fruit</tspan> going black underneath</text>
 
   <!-- what comes back -->
-  <g transform="translate(0 -12)"><g class="s2">
-    <text x="20" y="98" fill="#9198a1" font-size="13" font-weight="700" letter-spacing="1.3">YOUR AI GETS BACK</text>
-    <rect x="16" y="110" width="688" height="208" rx="12" fill="#151b23" stroke="#3d444d" stroke-width="1.5"/>
-    <path d="M20 124v180" stroke="#ab7df8" stroke-width="5" stroke-linecap="round"/>
-    <text x="42" y="150" fill="#f0f6fc" font-size="24" font-weight="700">Tomatoes <tspan fill="#9198a1" font-weight="400">›</tspan> Problems</text>
-    <text x="684" y="149" text-anchor="end" fill="#9198a1" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">match 0.42</text>
-    <g fill="#f0f6fc" font-size="24">
-      <text x="42" y="188">Blossom end rot shows up as a dark patch on the</text>
-      <text x="42" y="220">base of the <tspan fill="#ab7df8" font-weight="700" text-decoration="underline">fruit</tspan>. It comes from uneven watering,</text>
-      <text x="42" y="252">not disease.</text>
-    </g>
-    <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
-      <text x="42" y="282" fill="#9198a1" font-size="15">Garden/Tomatoes.md:13</text>
-      <text x="42" y="303" fill="#ab7df8" font-size="13.5">obsidian://open?vault=garden-notes&amp;file=Garden%2FTomatoes.md%23Problems</text>
-    </g>
-  </g></g>
+  <text x="6" y="100" fill="#9198a1" font-size="17" font-weight="700" letter-spacing="1.2">YOUR AI GETS BACK</text>
+  <rect x="5" y="112" width="630" height="190" rx="14" fill="#151b23" stroke="#3d444d" stroke-width="2"/>
+  <path d="M12 128v158" stroke="#ab7df8" stroke-width="6" stroke-linecap="round"/>
+  <text x="34" y="150" fill="#f0f6fc" font-size="25" font-weight="700">Tomatoes <tspan fill="#9198a1" font-weight="400">›</tspan> Problems</text>
+  <g fill="#f0f6fc" font-size="24">
+    <text x="34" y="186">Blossom end rot shows up as a dark patch on the</text>
+    <text x="34" y="218">base of the <tspan font-weight="700" stroke="#5c4a14" stroke-width="9" stroke-linejoin="round" paint-order="stroke">fruit</tspan>. It comes from uneven watering,</text>
+    <text x="34" y="250">not disease.</text>
+  </g>
+  <text x="34" y="284" fill="#9198a1" font-size="19">From <tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">Garden/Tomatoes.md</tspan>, line 13</text>
 
-  <!-- the 1:1 line, as sync prints it -->
-  <g transform="translate(0 -12)"><g class="s3">
-    <circle cx="31" cy="346" r="12" fill="#ab7df8"/>
-    <path d="M25.5 346.5l4 4 7.5-8.5" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="54" y="352.5" fill="#9198a1" font-size="19"><tspan fill="#f0f6fc" font-weight="700">In step:</tspan> 15 notes on disk = 15 notes in the index (32 passages).</text>
-  </g></g>
+  <!-- the 1:1 line, from what sync prints -->
+  <circle cx="19" cy="330" r="13" fill="#ab7df8"/>
+  <path d="M13 330.5l4.4 4.4 8-9.2" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42" y="337" fill="#9198a1" font-size="20"><tspan fill="#f0f6fc" font-weight="700">In step:</tspan> 15 notes on disk = 15 notes in the index</text>
 </svg>
