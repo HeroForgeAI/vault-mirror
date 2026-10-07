@@ -67,7 +67,7 @@ jobs:
           cache: npm
           cache-dependency-path: npm-shrinkwrap.json
       - name: Cache the reading model
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.ruvector/models
           key: reading-model-${{ hashFiles('src/embed/models.js') }}
