@@ -69,7 +69,7 @@ For anything bigger, **open an issue first** and describe the change in two sent
 
 1. **CI runs** your branch on macOS, Linux and Windows. If this is your first pull request here, the run waits for a maintainer to click "approve". That is a safety step GitHub applies to new contributors, not a judgment of your work.
 2. **A maintainer reviews it**, usually within a few days. Expect questions or requested changes. That is normal.
-3. **Mak Allen approves and merges it** as one squashed commit. Every merge needs his approval. If you push again after an approval, the approval is cleared and the new version is reviewed.
+3. **Mak Allen approves and merges it** as one squashed commit. Every merge needs his approval. If you push again after he has said yes, the new version is looked at again before it merges.
 
 A pull request that goes quiet gets a polite nudge after two weeks and is closed after four, with an invitation to reopen it. See [GOVERNANCE.md](GOVERNANCE.md).
 

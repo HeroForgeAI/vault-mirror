@@ -50,11 +50,12 @@ export async function rebuildCommand(args, ui) {
   setLogDir(path.join(ctx.indexDir, 'logs'));
   const started = Date.now();
   if (args.full) {
+    const workers = args.workers == null ? undefined : args.workers === 'auto' ? 'auto' : Number(args.workers);
+    if (typeof workers === 'number' && (!Number.isFinite(workers) || workers < 0)) throw new VmError('VM_E_USAGE', { detail: '--workers takes a number, for example --workers 2.' });
     if (!args.yes) {
       if (!process.stdin.isTTY || ui.json) throw new VmError('VM_E_USAGE', { detail: 'A full rebuild re-reads every note. To go ahead without being asked, add --yes.' });
       if (!(await confirm('This re-reads every note from scratch. Your notes are not touched. Go ahead? (y/n) '))) { ui.out('Nothing was changed.'); return { vault, body: { mode: 'full', passages: 0, seconds: 0, inStep: false, next: null, cancelled: true } }; }
     }
-    const workers = args.workers == null ? undefined : args.workers === 'auto' ? 'auto' : Number(args.workers);
     const r = /** @type {any} */ (await runSync(ctx, { fresh: true, workers, fullSpeed: args.fullSpeed, allowMassDelete: true }, ui));
     printSyncSummary(r, ui);
     return { vault, body: { mode: 'full', passages: r.passages.total, seconds: r.seconds, inStep: r.inStep, next: null } };

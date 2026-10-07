@@ -16,7 +16,7 @@ What goes into the tool, what stays out, when a version ships, and whether a cha
 ## How a change gets merged
 
 1. It arrives as a pull request. Nothing is pushed straight to `main`, by anyone.
-2. Mak Allen approves it. Every merge needs his approval, whoever opened the pull request.
+2. Mak Allen approves it. Every merge needs his approval, whoever opened the pull request. He says so on the pull request or merges it himself; the repository's rules require the pull request and the passing checks, and his yes is what lets it merge.
 3. The required checks are green.
 4. It is squash merged: one pull request becomes one commit on `main`.
 

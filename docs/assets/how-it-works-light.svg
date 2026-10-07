@@ -1,84 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 418" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 372" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="t">How vault-mirror works</title>
-  <desc id="d">Your vault feeds vault-mirror, which only reads it. vault-mirror keeps a local index in step. Your AI sends a question to the index and gets short passages back. Each result names the note, the heading and the line, so the AI opens only what it needs. One sync runs six stages: trigger, extract, filter, transform, embed, load.</desc>
+  <desc id="d">Your vault feeds vault-mirror, which only reads it. vault-mirror keeps an index on this computer in step with the vault. Your AI sends a question to the index and gets short passages back. Every result names the note, the heading and the line, so your AI opens only what it needs.</desc>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1.5 8.5 5 1 8.5" fill="none" stroke="#59636e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
     <marker id="b" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1.5 8.5 5 1 8.5" fill="none" stroke="#8250df" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
   </defs>
 
   <!-- the four boxes -->
-  <g stroke-width="1.5">
-    <rect x="8" y="24" width="170" height="112" rx="10" fill="#f6f8fa" stroke="#d1d9e0"/>
-    <rect x="246" y="24" width="170" height="112" rx="10" fill="#f6f8fa" stroke="#8250df" stroke-width="2"/>
-    <rect x="484" y="24" width="170" height="112" rx="10" fill="#f6f8fa" stroke="#d1d9e0"/>
-    <rect x="722" y="24" width="170" height="112" rx="10" fill="#f6f8fa" stroke="#d1d9e0"/>
+  <g stroke-width="2" fill="#f6f8fa">
+    <rect x="2" y="12" width="182" height="124" rx="14" stroke="#d1d9e0"/>
+    <rect x="229" y="12" width="182" height="124" rx="14" stroke="#8250df" stroke-width="2.5"/>
+    <rect x="456" y="12" width="182" height="124" rx="14" stroke="#d1d9e0"/>
+    <rect x="456" y="236" width="182" height="124" rx="14" stroke="#d1d9e0"/>
   </g>
-  <g text-anchor="middle" fill="#1f2328" font-size="19" font-weight="600">
-    <text x="93" y="62">Your vault</text>
-    <text x="331" y="62" fill="#8250df" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">vault-mirror</text>
-    <text x="569" y="62">The index</text>
-    <text x="807" y="62">Your AI</text>
+  <g text-anchor="middle" fill="#1f2328" font-size="24" font-weight="700">
+    <text x="93" y="54">Your vault</text>
+    <text x="320" y="54" fill="#8250df" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="21">vault-mirror</text>
+    <text x="547" y="54">The index</text>
+    <text x="547" y="278">Your AI</text>
   </g>
-  <g text-anchor="middle" fill="#59636e" font-size="15">
-    <text x="93" y="90">plain .md notes</text>
-    <text x="93" y="112">you read here</text>
-    <text x="331" y="90">reads what changed</text>
-    <text x="331" y="112">never edits a note</text>
-    <text x="569" y="90">outside the vault</text>
-    <text x="569" y="112">on this computer</text>
-    <text x="807" y="90">Claude Code, Codex</text>
-    <text x="807" y="112">searches first</text>
-  </g>
-
-  <!-- arrows between the boxes -->
-  <g fill="none" stroke="#59636e" stroke-width="1.8" stroke-linecap="round">
-    <path d="M184 80H239" marker-end="url(#a)"/>
-    <path d="M422 80H477" marker-end="url(#a)"/>
-    <path d="M716 64H661" marker-end="url(#a)"/>
-    <path d="M660 96H715" marker-end="url(#a)"/>
-  </g>
-  <g text-anchor="middle" fill="#59636e" font-size="15">
-    <text x="212" y="68">sync</text>
-    <text x="450" y="68">store</text>
-    <text x="688" y="52" font-size="12">question</text>
-    <text x="688" y="120" font-size="12">passages</text>
+  <g text-anchor="middle" fill="#59636e" font-size="18">
+    <text x="93" y="86">plain .md notes</text>
+    <text x="93" y="111">you read here</text>
+    <text x="320" y="86">reads what changed</text>
+    <text x="320" y="111">never edits a note</text>
+    <text x="547" y="86">outside the vault</text>
+    <text x="547" y="111">on this computer</text>
+    <text x="547" y="310">Claude Code, Codex</text>
+    <text x="547" y="335">searches first</text>
   </g>
 
-  <!-- the link back -->
-  <path d="M807 143V168Q807 180 795 180H105Q93 180 93 168V145" fill="none" stroke="#8250df" stroke-width="2" stroke-linecap="round" marker-end="url(#b)"/>
-  <text x="450" y="208" text-anchor="middle" fill="#8250df" font-size="15" font-weight="600">every result names the note, the heading and the line, so your AI opens only what it needs</text>
-
-  <!-- six stages -->
-  <text x="8" y="262" fill="#59636e" font-size="14" font-weight="600" letter-spacing="1.2">ONE SYNC, SIX STAGES</text>
-  <g fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5">
-    <rect x="8" y="276" width="138" height="64" rx="8"/>
-    <rect x="157.2" y="276" width="138" height="64" rx="8"/>
-    <rect x="306.4" y="276" width="138" height="64" rx="8"/>
-    <rect x="455.6" y="276" width="138" height="64" rx="8"/>
-    <rect x="604.8" y="276" width="138" height="64" rx="8"/>
-    <rect x="754" y="276" width="138" height="64" rx="8"/>
+  <!-- arrows -->
+  <g fill="none" stroke="#59636e" stroke-width="2.2" stroke-linecap="round">
+    <path d="M190 74H222" marker-end="url(#a)"/>
+    <path d="M417 74H449" marker-end="url(#a)"/>
+    <path d="M490 230V143" marker-end="url(#a)"/>
+    <path d="M604 142V229" marker-end="url(#a)"/>
   </g>
-  <g fill="#1f2328" font-size="16" font-weight="600">
-    <text x="22" y="302"><tspan fill="#8250df">1</tspan>  Trigger</text>
-    <text x="171.2" y="302"><tspan fill="#8250df">2</tspan>  Extract</text>
-    <text x="320.4" y="302"><tspan fill="#8250df">3</tspan>  Filter</text>
-    <text x="469.6" y="302"><tspan fill="#8250df">4</tspan>  Transform</text>
-    <text x="618.8" y="302"><tspan fill="#8250df">5</tspan>  Embed</text>
-    <text x="768" y="302"><tspan fill="#8250df">6</tspan>  Load</text>
-  </g>
-  <g fill="#59636e" font-size="15">
-    <text x="22" y="325">you or your AI</text>
-    <text x="171.2" y="325">changed notes</text>
-    <text x="320.4" y="325">skip exclusions</text>
-    <text x="469.6" y="325">cut at headings</text>
-    <text x="618.8" y="325">local model</text>
-    <text x="768" y="325">old out, new in</text>
+  <g fill="#59636e" font-size="18">
+    <text x="500" y="180">question</text>
+    <text x="594" y="208" text-anchor="end">passages</text>
   </g>
 
-  <!-- three habits -->
-  <g font-size="15" fill="#59636e">
-    <text x="8" y="384"><tspan fill="#1f2328" font-weight="600">Kept state</tspan>  a record of every note</text>
-    <text x="306.4" y="384"><tspan fill="#1f2328" font-weight="600">Idempotent</tspan>  a second run changes nothing</text>
-    <text x="694" y="384"><tspan fill="#1f2328" font-weight="600">Logged</tspan>  one line per run</text>
+  <!-- the link back, with its sentence in one piece above the line -->
+  <g fill="#8250df" font-size="20" font-weight="700">
+    <text x="112" y="204">Every result names the note,</text>
+    <text x="112" y="232">the heading and the line, so</text>
+    <text x="112" y="260">your AI opens only what it needs.</text>
   </g>
+  <path d="M449 298H105Q93 298 93 286V144" fill="none" stroke="#8250df" stroke-width="2.4" stroke-linecap="round" marker-end="url(#b)"/>
 </svg>

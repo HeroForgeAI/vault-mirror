@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 352" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="t">What vault-mirror gives your AI</title>
+  <desc id="d">A question, "why is the fruit going black underneath", and what vault-mirror returns: the Problems section of a note called Tomatoes, with the paragraph "Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.", from Garden/Tomatoes.md, line 13. The word "fruit" is marked in both. Below: In step: 15 notes on disk = 15 notes in the index. The notes are invented.</desc>
+
+  <!-- the question -->
+  <text x="6" y="42" fill="#59636e" font-size="17" font-weight="700" letter-spacing="1.2">YOU ASK</text>
+  <rect x="118" y="5" width="517" height="58" rx="29" fill="#f6f8fa" stroke="#8250df" stroke-width="2"/>
+  <text x="376" y="43" text-anchor="middle" fill="#1f2328" font-size="25">why is the <tspan font-weight="700" stroke="#fff8c5" stroke-width="9" stroke-linejoin="round" paint-order="stroke">fruit</tspan> going black underneath</text>
+
+  <!-- what comes back -->
+  <text x="6" y="100" fill="#59636e" font-size="17" font-weight="700" letter-spacing="1.2">YOUR AI GETS BACK</text>
+  <rect x="5" y="112" width="630" height="190" rx="14" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
+  <path d="M12 128v158" stroke="#8250df" stroke-width="6" stroke-linecap="round"/>
+  <text x="34" y="150" fill="#1f2328" font-size="25" font-weight="700">Tomatoes <tspan fill="#59636e" font-weight="400">›</tspan> Problems</text>
+  <g fill="#1f2328" font-size="24">
+    <text x="34" y="186">Blossom end rot shows up as a dark patch on the</text>
+    <text x="34" y="218">base of the <tspan font-weight="700" stroke="#fff8c5" stroke-width="9" stroke-linejoin="round" paint-order="stroke">fruit</tspan>. It comes from uneven watering,</text>
+    <text x="34" y="250">not disease.</text>
+  </g>
+  <text x="34" y="284" fill="#59636e" font-size="19">From <tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">Garden/Tomatoes.md</tspan>, line 13</text>
+
+  <!-- the 1:1 line, from what sync prints -->
+  <circle cx="19" cy="330" r="13" fill="#8250df"/>
+  <path d="M13 330.5l4.4 4.4 8-9.2" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42" y="337" fill="#59636e" font-size="20"><tspan fill="#1f2328" font-weight="700">In step:</tspan> 15 notes on disk = 15 notes in the index</text>
+</svg>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 470" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="t">What a search returns, line by line</title>
+  <desc id="d">The output of vault-mirror search "why is the fruit going black underneath" -k 1, with each line labelled. One: the note, then the heading inside it: Tomatoes, Problems. Two: how close the match is: match 0.42. Three: the file and the line, so your AI can open the exact place: /Users/you/garden-notes/Garden/Tomatoes.md:13. Four: a link that opens that heading in Obsidian. Five: the paragraph itself, in full: Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.</desc>
+  <rect x="1" y="1" width="638" height="468" rx="14" fill="#151b23" stroke="#3d444d" stroke-width="2"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#f0f6fc">
+    <text x="22" y="36"><tspan fill="#ab7df8" font-weight="700">$</tspan> vault-mirror search "why is the fruit going</text>
+    <text x="22" y="62">  black underneath" -k 1</text>
+  </g>
+  <path d="M1 80h638" stroke="#3d444d" stroke-width="2"/>
+
+  <!-- labels -->
+  <g fill="#ab7df8">
+    <circle cx="34" cy="108" r="12"/><circle cx="420" cy="108" r="12"/>
+    <circle cx="34" cy="184" r="12"/><circle cx="34" cy="260" r="12"/><circle cx="34" cy="362" r="12"/>
+  </g>
+  <g fill="#ffffff" font-size="15" font-weight="700" text-anchor="middle">
+    <text x="34" y="113.5">1</text><text x="420" y="113.5">2</text>
+    <text x="34" y="189.5">3</text><text x="34" y="265.5">4</text><text x="34" y="367.5">5</text>
+  </g>
+  <g fill="#9198a1" font-size="18">
+    <text x="54" y="114">The note, then the heading inside it</text>
+    <text x="440" y="114">How close a match</text>
+    <text x="54" y="190">The file and the line, so your AI can open the place</text>
+    <text x="54" y="266">A link that opens that heading in Obsidian</text>
+    <text x="54" y="368">The paragraph itself, in full</text>
+  </g>
+
+  <!-- the real output -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#f0f6fc">
+    <text x="22" y="144" font-weight="700">1. Tomatoes  ›  Problems</text>
+    <text x="440" y="144">match 0.42</text>
+    <text x="54" y="220">/Users/you/garden-notes/Garden/Tomatoes.md:13</text>
+    <g fill="#ab7df8">
+      <text x="54" y="296">obsidian://open?vault=garden-notes</text>
+      <text x="54" y="322">&amp;file=Garden%2FTomatoes.md%23Problems</text>
+    </g>
+    <text x="54" y="398">Blossom end rot shows up as a dark patch on the</text>
+    <text x="54" y="424">base of the fruit. It comes from uneven watering,</text>
+    <text x="54" y="450">not disease.</text>
+  </g>
+</svg>

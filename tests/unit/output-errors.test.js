@@ -103,6 +103,40 @@ test('--help lists exactly the six commands and makes no saving claim', () => {
   assert.equal(run(['--version']).stdout, '0.1.0\n');
 });
 
+test('full rebuild rejects invalid workers like sync, before starting an index', () => {
+  const home = tmpDir('workers'); const vault = path.join(tmpDir('workers'), 'notes');
+  fs.mkdirSync(path.join(vault, '.obsidian'), { recursive: true });
+  const note = '# A\n\nOne invented sentence about a garden.\n';
+  fs.writeFileSync(path.join(vault, 'A.md'), note);
+  const env = { VAULT_MIRROR_HOME: home };
+  const init = run(['init', vault, '--no-rule', '--json'], env);
+  assert.equal(init.status, 0, init.stderr);
+  const indexDir = JSON.parse(init.stdout).indexDir;
+  // If argument validation is missing, fail at model selection rather than downloading a model.
+  const configFile = path.join(home, 'config.json');
+  const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+  config.embedding.model = 'unsupported-workers-test-model';
+  fs.writeFileSync(configFile, JSON.stringify(config));
+  const message = '--workers takes a number, for example --workers 2.';
+  for (const workers of ['abc', '-1', 'Infinity']) {
+    for (const args of [['sync'], ['rebuild', '--full', '--yes'], ['rebuild', '--full']]) {
+      const human = run([...args, `--workers=${workers}`], env);
+      assert.equal(human.status, 2);
+      assert.equal(human.stdout, '');
+      assert.equal(human.stderr, `${message}\nNext: Run \`vault-mirror --help\`.\n`);
+      const json = run([...args, `--workers=${workers}`, '--json'], env);
+      assert.equal(json.status, 2);
+      assert.equal(json.stderr, '');
+      const body = JSON.parse(json.stdout);
+      assert.equal(body.error.code, 'VM_E_USAGE');
+      assert.equal(body.error.message, message);
+      assert.equal(body.error.exitCode, 2);
+      assert.equal(fs.existsSync(indexDir), false, 'runSync must not start');
+      assert.equal(fs.readFileSync(path.join(vault, 'A.md'), 'utf8'), note);
+    }
+  }
+});
+
 test('a --json error names the vault once one is set', () => {
   const home = tmpDir('out'); const vault = path.join(tmpDir('out'), 'notes');
   fs.mkdirSync(path.join(vault, '.obsidian'), { recursive: true });
