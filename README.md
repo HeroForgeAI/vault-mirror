@@ -284,6 +284,21 @@ It prints `In step: yes` only when nine named checks all hold. `status --verify`
 
 Thank you, rUv ([@ruvnet](https://github.com/ruvnet)). vault-mirror exists because ruvector does the hard part well, and because [obsidian-brain](https://github.com/ruvnet/obsidian-brain) showed the way.
 
+## Coming soon: an MCP server
+
+Today your AI uses vault-mirror by running its commands, and a one-line rule in your project tells it to. That works, and it is what this page describes.
+
+Next comes an MCP server. MCP (Model Context Protocol) is the standard way to hand an AI app a set of tools. With it, vault-mirror will show up as tools your AI already has. This will be vault-mirror's own small server. Here is what it is planned to bring:
+
+- **No rule line per project.** You will add the server once, and your AI will be able to search your vault from any project.
+- **More apps.** Any app that speaks MCP will be able to use it, including ones with no terminal, such as a desktop chat app.
+- **Fewer interruptions.** Your AI will call a named search tool, so there will be no shell command to approve each time.
+- **Tidier results.** The search will hand back structured results, so your AI reads less to get the same passage.
+- **Faster repeat searches.** The server will be able to keep the reading model loaded between questions.
+- **The same promise.** It only reads your notes. The server will not get a tool that writes to a vault.
+
+It is planned, not released, and the details may change. Nothing on this page needs it. If there is something you would want from it, [open an idea](https://github.com/HeroForgeAI/vault-mirror/issues/new/choose).
+
 ## When plain file search is enough, and when this helps
 
 Your AI can already search a folder of notes with nothing installed, and that plain search is good.
@@ -400,7 +415,7 @@ Planned, with no dates:
 - A release on the npm registry, so the install line is short and `npx vault-mirror doctor` works as a first try.
 - A warm mode: an optional helper that keeps the model loaded, so a second search skips the 0.26 s model load. Off by default.
 - Skip the index safety probe when the index file has not changed since the last good open.
-- An MCP server, for agents that prefer one to a shell command.
+- An MCP server, for agents that prefer one to a shell command. [What it is planned to bring](#coming-soon-an-mcp-server).
 
 ## Credits
 
