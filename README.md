@@ -3,18 +3,17 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/wordmark-light.svg">
-  <img alt="vault-mirror" src="docs/assets/wordmark-light.svg" width="480">
+  <img alt="vault-mirror" src="docs/assets/wordmark-light.svg" width="440">
 </picture>
 
-<p><b>Obsidian is how you read your notes. vault&#8209;mirror is how your AI finds them.</b></p>
-
-<p>It keeps an index, a lookup list of your notes, on your computer. Your AI asks it first.<br>
+<p><b>Obsidian is how you read your notes. vault&#8209;mirror is how your AI finds them.</b><br>
+It keeps an index, a lookup list of your notes, on your computer. Your AI asks it first.<br>
 <b>It only reads your notes.</b> The tool never changes them.</p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-light.svg">
-  <img alt="You ask: why is the fruit going black underneath. Your AI gets back the Problems section of a note called Tomatoes: 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.', from Garden/Tomatoes.md, line 13. The word fruit is marked in the question and in the note. Below: In step: 15 notes on disk = 15 notes in the index. The notes are invented." src="docs/assets/hero-light.svg" width="600">
+  <img alt="You ask: why is the fruit going black underneath. Your AI gets back the Problems section of a note called Tomatoes: 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.', from Garden/Tomatoes.md, line 13. The word fruit is marked in the question and in the note. Below: In step: 15 notes on disk = 15 notes in the index. The notes are invented." src="docs/assets/hero-light.svg" width="580">
 </picture>
 
 <p>A real result on 15 invented notes. It can miss, and then your AI searches the files.<br>
@@ -32,7 +31,7 @@ macOS (Apple Silicon): tested. Windows and Linux: <a href="https://github.com/He
 npm install -g github:HeroForgeAI/vault-mirror#v0.1.0
 ```
 
-Then `vault-mirror init "<vault folder>"`, `vault-mirror sync` and `vault-mirror search "<question>"`. [What each one prints](#type-it-yourself).
+Then `vault-mirror init "<folder>"`, `vault-mirror sync` and `vault-mirror search "<question>"`. [What each one prints](#type-it-yourself).
 
 <p align="center">
   <a href="https://github.com/HeroForgeAI/vault-mirror/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/HeroForgeAI/vault-mirror"></a>
@@ -78,7 +77,7 @@ You can remove it at any time. Your vault is not touched either way. Worried abo
 
    Success: `vault-mirror --version` prints `0.1.0`. npm also prints a funding note; ignore it. If the shell says `command not found`, add the `bin` folder under `npm prefix -g` to the PATH.
 4. Run `vault-mirror doctor`. Success: the last line starts `Ready.` The first run prints "Downloading the reading model once (about 90 MB). After this, everything runs on your computer." That is the only download.
-5. Stay in the folder you are already working in (do not `cd`), and run `vault-mirror init "<vault folder>"`. It adds one rule block to `CLAUDE.md` and `AGENTS.md` in that folder. Success: "Set up &lt;name&gt; (&lt;count&gt; notes). It only reads your notes." and a last line `Next: vault-mirror sync`. If it says "The vault folder was not found", the path is wrong and nothing was changed. If it says Obsidian has not opened this folder as a vault yet, that is harmless: file paths work either way.
+5. Stay in the folder you are already working in (do not `cd`), and run `vault-mirror init "<folder>"`. It adds one rule block to `CLAUDE.md` and `AGENTS.md` in that folder. Success: "Set up &lt;name&gt; (&lt;count&gt; notes). It only reads your notes." and a last line `Next: vault-mirror sync`. If it says "The vault folder was not found", the path is wrong and nothing was changed. If it says Obsidian has not opened this folder as a vault yet, that is harmless: file paths work either way.
 6. Run `vault-mirror sync --detach`, then `vault-mirror status` every ten seconds or so until a line starts `In step: yes`. Until then it says "A sync is running" with a percent and the time left. In the first moments a search can answer "Nothing is indexed yet." Do not start a second sync; wait and ask `status` again.
 7. Run one search with a question about the person's own notes: `vault-mirror search "<question>"`. Two or three wordings in one call work best. If the passages do not answer the question, search the vault files.
 8. Tell the person three things: how many notes were read, that `status` says `In step: yes`, and the top result for their question.
@@ -102,7 +101,7 @@ Check it: `vault-mirror --version` prints `0.1.0`. npm also prints a funding not
 **2. Point it at one vault.** Run this from the folder your AI works in, with your vault's folder between the quotes. `init` adds one rule block to `CLAUDE.md` and `AGENTS.md` in the folder you run it from, so your AI knows to search the index first. It writes nothing in the vault.
 
 ```bash
-vault-mirror init "<vault folder>"
+vault-mirror init "<folder>"
 ```
 
 You see "Set up garden-notes (15 notes). It only reads your notes." with your own vault's name and count, then `Next: vault-mirror sync`.
@@ -115,10 +114,10 @@ vault-mirror sync
 
 It shows progress, then "Done in 2.3 s. In step: 15 notes on disk = 15 notes in the index (32 passages)." with your own numbers, then one line of counts.
 
-**4. Ask about your own notes.** Put your question between the quotes.
+**4. Ask about your own notes.** Put your question in place of the dots.
 
 ```bash
-vault-mirror search "<question>"
+vault-mirror search "..."
 ```
 
 You see a numbered list: the note, the heading, the file with its line, and the paragraph. [What a search returns](#what-a-search-returns) shows one.
