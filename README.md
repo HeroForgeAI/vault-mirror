@@ -133,6 +133,14 @@ Every line a first run prints, including the progress line: [docs/FIRST-RUN.md](
 
 ## What a search returns
 
+Most people never type the search. They ask their AI, and their AI runs it.
+
+**You say** to Claude Code or Codex:
+
+> Use vault-mirror to search my vault: why is the fruit going black underneath? Keep it short and name the note.
+
+**Your AI runs** `vault-mirror search "why is the fruit going black underneath?"` and this comes back first:
+
 <p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/search-result-dark.svg">
@@ -141,16 +149,34 @@ Every line a first run prints, including the progress line: [docs/FIRST-RUN.md](
 </picture>
 </p>
 
-Drawn from real output on 15 invented notes: the vault in [`tests/fixtures/vault`](tests/fixtures/vault) without its edge-case folders, as [`docs/demo/setup.sh`](docs/demo/setup.sh) builds it. The command, the link and the paragraph are each one line in the tool and are wrapped here, and `/Users/you` stands in for the folder the example ran in. `-k 1` asks for one result; the default is 8.
+**Your AI answers** from that passage, and names the note:
+
+> Most likely blossom end rot, per your **Tomatoes** note (Garden/Tomatoes.md, "Problems" section). It shows as a dark patch on the base of the fruit and comes from uneven watering, not disease.
+
+The ask, the command and the answer are from one real Claude Code session, the one recorded in [Watch it run](#watch-it-run). An AI words its answer a little differently each time. It works best when your question shares a word or two with the note. It can miss, and then your AI searches the files.
+
+The picture is drawn from real output on 15 invented notes: the vault in [`tests/fixtures/vault`](tests/fixtures/vault) without its edge-case folders, as [`docs/demo/setup.sh`](docs/demo/setup.sh) builds it. Its top line is the same search typed by hand. The command, the link and the paragraph are each one line in the tool and are wrapped here, and `/Users/you` stands in for the folder the example ran in. `-k 1` asks for one result; the default is 8.
 
 The match number says how close the paragraph is to the question. A higher number is closer. It is not a percentage of how sure anything is.
 
 One call gives two lists. The first is **by meaning**, as above. The second, shown only when it adds something, is **exact words**: paragraphs that hold the very words asked for, which is what you want for a name, a code or a rare term. The two lists are never blended into one ranking.
 
 <details>
-<summary><b>Both lists as plain text</b></summary>
+<summary><b>Prefer to type it yourself?</b></summary>
 
 <br>
+
+The same search in a terminal, as plain text:
+
+```text
+$ vault-mirror search "why is the fruit going black underneath" -k 1
+1. Tomatoes  ›  Problems                                     match 0.42
+   /Users/you/garden-notes/Garden/Tomatoes.md:13
+   obsidian://open?vault=garden-notes&file=Garden%2FTomatoes.md%23Problems
+   Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.
+```
+
+And one that shows both lists:
 
 ```text
 $ vault-mirror search "when should I feed the tomatoes" -k 2
@@ -190,9 +216,11 @@ The same thing inside Claude Code: you ask in plain English, and your AI runs th
 
 You do not type the commands. You say what you want, and your AI runs them.
 
-- **"Sync my vault."** Your AI brings the index in step with the vault in the background, then reports where it stands.
-- **"Search my vault for ..."** Your AI gets the paragraphs that best match, each with its note, heading, file and line.
-- **"Is my vault in sync?"** It counts notes on disk against notes in the index and answers yes, or not yet.
+- **"Use vault-mirror to sync my vault."** Your AI brings the index in step with the vault in the background, then reports where it stands.
+- **"Use vault-mirror to search my vault for ..."** Your AI gets the paragraphs that best match, each with its note, heading, file and line.
+- **"Use vault-mirror to check if my vault is in sync."** It counts notes on disk against notes in the index and answers yes, or not yet.
+
+The short forms, "Sync my vault", "Search my vault for ..." and "Is my vault in sync?", also work in a project folder where setup has written the rule.
 
 `init` writes one rule for your AI into `CLAUDE.md` and `AGENTS.md` in your project folder. This is the whole rule, word for word (the copyable files are in [`examples/`](examples)):
 
