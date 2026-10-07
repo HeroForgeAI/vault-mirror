@@ -95,14 +95,19 @@ test('every tool, on the fixture vault, with the vault checksummed before and af
   // Search: the structured result of the README's own example.
   const cold = await call('search_vault', { query: 'why is the fruit going black underneath', limit: 1 });
   assert.ok(!cold.isError, cold.text);
-  assert.deepEqual(Object.keys(cold.out.results[0]), ['note', 'heading', 'path', 'line', 'score', 'text'], 'no link until Obsidian has opened the folder, and no field said twice');
-  assert.deepEqual(cold.out.results[0], { note: 'Tomatoes', heading: 'Problems', path: path.join(vault, 'Garden', 'Tomatoes.md'), line: 13, score: cold.out.results[0].score, text: 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.' });
+  // Obsidian has not opened this folder. On macOS and Windows there is then no link, and a notice says how to get one.
+  // On Linux, where Obsidian's vault list is not always where the tool looks, a link by the vault's name is still offered.
+  const linked = process.platform !== 'darwin' && process.platform !== 'win32';
+  const link = linked ? { link: 'obsidian://open?vault=garden%20notes&file=Garden%2FTomatoes.md%23Problems' } : {};
+  assert.deepEqual(Object.keys(cold.out.results[0]), ['note', 'heading', 'path', 'line', 'score', ...Object.keys(link), 'text'], 'no field said twice, and none left empty');
+  assert.deepEqual(cold.out.results[0], { note: 'Tomatoes', heading: 'Problems', path: path.join(vault, 'Garden', 'Tomatoes.md'), line: 13, score: cold.out.results[0].score, ...link, text: 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.' });
   assert.ok(cold.out.results[0].score > 0.3 && cold.out.results[0].score < 0.6);
   assert.equal(fs.readFileSync(cold.out.results[0].path, 'utf8').split(/\r?\n/)[12].startsWith('Blossom end rot'), true, 'the path and line point at the passage');
   assert.deepEqual([cold.out.vault, cold.out.results.length, cold.out.modelWasLoaded], ['garden notes', 1, false]);
   assert.deepEqual(cold.out.index, { notes: s.notesInIndex, passages: s.passages, notesWaiting: 0, syncRunning: false });
   assert.ok(cold.out.words.inPassages >= 22 && cold.out.words.inPassages < cold.out.words.inTheirNotes, 'words read, beside words in the source notes');
-  assert.ok(cold.out.notices.some((/** @type {string} */ n) => /Open this folder as a vault in Obsidian once/.test(n)));
+  if (linked) assert.equal(cold.out.notices, undefined, 'nothing to pass on');
+  else assert.deepEqual(cold.out.notices, ['Open this folder as a vault in Obsidian once, and links will work. File paths work either way.']);
   // The same question through the command gives the same passage and the same score.
   const viaCli = json(cli(['search', 'why is the fruit going black underneath', '-k', '1', '--no-sync']));
   assert.deepEqual([viaCli.results[0].path, viaCli.results[0].line, viaCli.results[0].text.replace(/\s+/g, ' ').trim()], [cold.out.results[0].path, 13, cold.out.results[0].text]);
