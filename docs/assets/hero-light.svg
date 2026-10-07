@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 372" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-labelledby="t d" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="t">What vault-mirror gives your AI</title>
   <desc id="d">A question, "why is the fruit going black underneath", and what vault-mirror returns: the Problems section of a note called Tomatoes, match 0.42, with the paragraph "Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.", the file and line it came from, and a link that opens that heading in Obsidian. Below: In step: 15 notes on disk = 15 notes in the index (32 passages). The notes are invented.</desc>
   <style>
@@ -18,7 +18,7 @@
   </g>
 
   <!-- what comes back -->
-  <g class="s2">
+  <g transform="translate(0 -12)"><g class="s2">
     <text x="20" y="98" fill="#59636e" font-size="13" font-weight="700" letter-spacing="1.3">YOUR AI GETS BACK</text>
     <rect x="16" y="110" width="688" height="208" rx="12" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
     <path d="M20 124v180" stroke="#8250df" stroke-width="5" stroke-linecap="round"/>
@@ -33,12 +33,12 @@
       <text x="42" y="282" fill="#59636e" font-size="15">Garden/Tomatoes.md:13</text>
       <text x="42" y="303" fill="#8250df" font-size="13.5">obsidian://open?vault=garden-notes&amp;file=Garden%2FTomatoes.md%23Problems</text>
     </g>
-  </g>
+  </g></g>
 
   <!-- the 1:1 line, as sync prints it -->
-  <g class="s3">
+  <g transform="translate(0 -12)"><g class="s3">
     <circle cx="31" cy="346" r="12" fill="#8250df"/>
     <path d="M25.5 346.5l4 4 7.5-8.5" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="54" y="352.5" fill="#59636e" font-size="19"><tspan fill="#1f2328" font-weight="700">In step:</tspan> 15 notes on disk = 15 notes in the index (32 passages).</text>
-  </g>
+  </g></g>
 </svg>

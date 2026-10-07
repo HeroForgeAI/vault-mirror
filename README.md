@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/wordmark-light.svg">
-  <img alt="vault-mirror" src="docs/assets/wordmark-light.svg" width="480">
+  <img alt="vault-mirror" src="docs/assets/wordmark-light.svg" width="440">
 </picture>
 
 <p><b>Obsidian is how you read your notes. vault&#8209;mirror is how your AI finds them.</b></p>
@@ -14,16 +14,16 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-light.svg">
-  <img alt="A question, 'why is the fruit going black underneath', and what vault-mirror returns to an AI: the Problems section of a note called Tomatoes, match 0.42, with the paragraph 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.', the file and line it came from, and a link that opens that heading in Obsidian. Below: In step: 15 notes on disk = 15 notes in the index (32 passages). The notes are invented." src="docs/assets/hero-light.svg" width="720">
+  <img alt="A question, 'why is the fruit going black underneath', and what vault-mirror returns to an AI: the Problems section of a note called Tomatoes, match 0.42, with the paragraph 'Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.', the file and line it came from, and a link that opens that heading in Obsidian. Below: In step: 15 notes on disk = 15 notes in the index (32 passages). The notes are invented." src="docs/assets/hero-light.svg" width="640">
 </picture>
 
 <p><sub>A real result on 15 invented notes. It can miss, and then your AI searches the files.</sub></p>
 
 <p>
   <a href="https://github.com/HeroForgeAI/vault-mirror/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/HeroForgeAI/vault-mirror"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/HeroForgeAI/vault-mirror"></a><br>
-  Runs on your computer · Node 20 or newer · built on <a href="https://github.com/ruvnet/ruvector">ruvector</a><br>
-  macOS: tested. Windows and Linux: <a href="https://github.com/HeroForgeAI/vault-mirror/actions/workflows/ci.yml">in testing</a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/HeroForgeAI/vault-mirror"></a>
+  Runs on your computer · Node&nbsp;20 or newer · built on <a href="https://github.com/ruvnet/ruvector">ruvector</a><br>
+  macOS: tested. Windows and Linux: <a href="https://github.com/HeroForgeAI/vault-mirror/actions/workflows/ci.yml">in&nbsp;testing</a>
 </p>
 
 </div>
@@ -119,10 +119,10 @@ vault-mirror sync
 
 It shows progress and ends with "In step: 15 notes on disk = 15 notes in the index (32 passages)." with your own numbers.
 
-**4. Ask about your own notes.**
+**4. Ask about your own notes.** Put your question between the quotes.
 
 ```bash
-vault-mirror search "<question>"
+vault-mirror search "<words>"
 ```
 
 You see a numbered list: the note, the heading, the file with its line, and the paragraph. [What a search returns](#what-a-search-returns) shows one.
@@ -305,41 +305,84 @@ Measured, with the conditions beside every number. Nothing here is a promise for
 | Peak memory, first sync | about 1.9 GB | about 2.7 GB |
 | Index size on disk | 13 MB | 218 MB |
 
-One machine: Apple M4 Max, 16 cores, 64 GB, Node 24.15.0, `ruvector` 0.3.3, Oct 6, 2026. Other jobs were running both times (load average 4.6 to 6.0 for the first column with 4 readers, about 7 to 9 for the second with 6 readers), so read each speed as rough. The first column is a public set of English help pages used as a stand-in vault. The second is one run on a private vault, on an earlier commit, that a reader cannot repeat. Not yet measured: a first sync on an ordinary laptop, and any machine other than this one.
+- **One machine:** Apple M4 Max, 16 cores, 64 GB, Node 24.15.0, `ruvector` 0.3.3, Oct 6, 2026.
+- **Other jobs were running both times** (load average 4.6 to 6.0 for the first column, about 7 to 9 for the second), so read each speed as rough.
+- **The first column** is a public set of English help pages used as a stand-in vault, with 4 readers. **The second** is one run on a private vault with 6 readers, on an earlier commit, that a reader cannot repeat.
+- **Not yet measured:** a first sync on an ordinary laptop, and any machine other than this one.
 
 **Does it find the right note?** It works best when your question shares a word or two with the note. Sending two or three wordings in one call helps. It can miss, and then your AI searches the files. The checks behind that, the full tables and the commands to measure again are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## FAQ
 
-**Will it change, move or delete my notes?**
+<details>
+<summary><b>Will it change, move or delete my notes?</b></summary>
+
 No. It has no code path that writes into a vault, and that is tested four ways. `init` writes one rule block to `CLAUDE.md` and `AGENTS.md` in your project folder. If that folder is inside a vault, `init` writes nothing there and prints the rule for you to paste. See [Is it safe for my notes?](#is-it-safe-for-my-notes)
 
-**Do my notes leave my computer?**
+</details>
+
+<details>
+<summary><b>Do my notes leave my computer?</b></summary>
+
 The tool sends nothing out. Your AI is a separate matter: the passages a search returns are read by Claude or Codex, the same as when you paste a note into a chat.
 
-**Do I need to choose a model, or get an API key?**
+</details>
+
+<details>
+<summary><b>Do I need to choose a model, or get an API key?</b></summary>
+
 No. It uses a small reading model that runs on your computer. You don't need to choose anything.
 
-**How long does the first sync take?**
+</details>
+
+<details>
+<summary><b>How long does the first sync take?</b></summary>
+
 A few hundred notes take a few minutes. A very large vault of about two thousand notes took about seventeen minutes on a fast Mac. Later syncs read only what changed.
 
-**What in a note is read?**
+</details>
+
+<details>
+<summary><b>What in a note is read?</b></summary>
+
 Only `.md` files. Links and embeds are turned into the words a reader would see, and aliases in a note's properties are searchable by meaning. Query blocks such as dataview and mermaid are dropped. Images, PDFs and `.canvas` files are counted and never read. The reading model was trained on English; other languages are not yet tested.
 
-**Do I need Obsidian?**
+</details>
+
+<details>
+<summary><b>Do I need Obsidian?</b></summary>
+
 A vault is a folder of plain `.md` files, so the tool works on any such folder. The `obsidian://` links open once Obsidian has opened that folder as a vault.
 
-**Do I need to set up anything else from ruvector?**
+</details>
+
+<details>
+<summary><b>Do I need to set up anything else from ruvector?</b></summary>
+
 No. vault-mirror uses ruvector as a library. It needs no ruvector hooks, no ruvector MCP server and no other ruv tool, and it installs none.
 
-**Can I change the settings?**
+</details>
+
+<details>
+<summary><b>Can I change the settings?</b></summary>
+
 You can leave them alone. `init` writes one settings file, and the defaults work. Every key is in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
-**Something went wrong. What now?**
+</details>
+
+<details>
+<summary><b>Something went wrong. What now?</b></summary>
+
 Run `vault-mirror doctor`. Every message the tool prints is one plain sentence and one next step, and the ones people meet are explained in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). `vault-mirror rebuild` is always safe: your notes are the original and the index is a copy.
 
-**How do I remove it?**
+</details>
+
+<details>
+<summary><b>How do I remove it?</b></summary>
+
 `npm uninstall -g vault-mirror`, delete `~/.vault-mirror`, and delete the block between the two `vault-mirror` markers in `CLAUDE.md` and `AGENTS.md`. If no other ruvector tool uses it, also delete the reading model in `~/.ruvector/models/` (87 MB). Your vault was never touched, so there is nothing to undo there.
+
+</details>
 
 ## Where it stands
 
