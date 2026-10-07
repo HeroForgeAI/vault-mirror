@@ -278,6 +278,12 @@ After a sync, every note that belongs in the index is in it, once, as it was on 
 
 It prints `In step: yes` only when nine named checks all hold. `status --verify` goes further and fingerprints every note. The nine checks, the full `status` output, and what a sync prints after an edit, a rename and a delete: [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md#what-in-step-means).
 
+## Built on ruvector
+
+[ruvector](https://github.com/ruvnet/ruvector) is an open-source vector engine by rUv (Reuven Cohen). It is where finding by meaning comes into vault-mirror: it turns each short passage of a note into a list of numbers that stands for its meaning, keeps those numbers on your computer, and finds the closest ones when you ask. vault-mirror uses it as a library and adds the parts around it: the sync that keeps the index matched to the vault, the read-only guarantee, the cutting of notes into passages, and the check that the two are in step. The reading model runs on your computer. You do not install or set up ruvector yourself; it comes with vault-mirror. Finding by meaning has limits: it works best when your question shares a word or two with the note, and it can miss.
+
+Thank you, rUv. vault-mirror exists because ruvector does the hard part well, and because [obsidian-brain](https://github.com/ruvnet/obsidian-brain) showed the way.
+
 ## When plain file search is enough, and when this helps
 
 Your AI can already search a folder of notes with nothing installed, and that plain search is good.
