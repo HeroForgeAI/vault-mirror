@@ -44,6 +44,10 @@ The vault is the library; the index is the librarian.<br>
 <p><i>What you are watching: the tool reads 15 practice notes, counts them to check none was missed, then finds the right note for a question asked in different words, on this small practice set.<br>
 A few hundred notes take a few minutes. The first time is the slow one. You can keep working.</i></p>
 
+<img src="docs/demo/claude-code.gif" alt="Claude Code in a terminal. The person types: Use vault-mirror to search my vault: why is the fruit going black underneath? Keep it short and name the note. Claude Code runs vault-mirror search with that question. The first result is the Tomatoes note, Problems section, match 0.42, with the path to the note. Claude Code answers: Most likely blossom end rot, per your Tomatoes note (Garden/Tomatoes.md, Problems section). It shows as a dark patch on the base of the fruit and comes from uneven watering, not disease." width="640">
+
+<p><i>The same thing inside Claude Code: you ask in plain English, and your AI runs the search. A real session at real speed on the same invented notes; <a href="docs/demo/claude-code.tape">the script</a> says how. Codex reads the same rule from <code>AGENTS.md</code>.</i></p>
+
 </div>
 
 ## Set it up (your AI can do this part)
