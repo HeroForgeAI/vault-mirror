@@ -9,6 +9,7 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 ### Fixed
 
 - `rebuild --full` rejects invalid `--workers` values with the same usage error as `sync`, before starting to re-read notes.
+- `--workers` now takes `auto` or a whole number only, on `sync` and `rebuild` alike. A fraction, an empty value and forms such as `0x10` or `1e3` used to slip through and are now refused with the same sentence; `rebuild --workers abc` without `--full` is refused too. Builds on the fix GreedyC contributed in [#18](https://github.com/HeroForgeAI/vault-mirror/pull/18).
 
 ### Changed
 
