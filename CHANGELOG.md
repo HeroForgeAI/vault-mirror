@@ -6,6 +6,10 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ## [Unreleased]
 
+### Changed
+
+- The rule that `init` writes has one more sentence: use `vault-mirror search` before the Obsidian command-line tool or plain file search, and turn to those only when it returns nothing useful. Run `vault-mirror init "<folder>"` again to get it. `init` replaces the earlier rule where it stands, also when it was pasted without its two markers, touches no other line, and keeps the file's line endings.
+
 ## [0.1.1] - 2026-10-08
 
 vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still only ever read. Upgrading reads no note again: nothing changed in how notes are cut or read, and an index made by 0.1.0 is kept.

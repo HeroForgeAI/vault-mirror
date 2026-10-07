@@ -39,6 +39,7 @@ test('the rule text equals examples/CLAUDE.md and keeps its fixed wording', () =
   assert.equal(read('examples/AGENTS.md').trim(), RULE_BLOCK);
   assert.ok(RULE_LINE.includes('read the passages it returns'));
   assert.ok(RULE_LINE.includes('If they do not answer the question, search the vault files.'));
+  assert.ok(RULE_LINE.includes('Use `vault-mirror search` before the Obsidian command-line tool or plain file search, and turn to those only when it returns nothing useful.'));
   assert.ok(RULE_LINE.includes('Do not read the whole vault.'));
   assert.ok(!/open only/i.test(RULE_LINE));
   assert.ok(!RULE_LINE.includes('\n'), 'one line');

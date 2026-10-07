@@ -8,7 +8,7 @@ import { resolveSafe, isInside, clearPathCache } from '../../src/config/paths.js
 import { chooseWorkers, indexDirFor } from '../../src/config/config.js';
 import * as safe from '../../src/store/safe-write.js';
 import { projectCheck, applyRule } from '../../src/cli/commands/init.js';
-import { RULE_BLOCK } from '../../src/rule-text.js';
+import { RULE_BLOCK, RULE_LINE, OLD_RULE_LINES } from '../../src/rule-text.js';
 import { VmError } from '../../src/errors.js';
 import { fileURLToPath } from 'node:url';
 import { tmpDir, DIR_LINK } from '../helpers/tmp.mjs';
@@ -149,6 +149,44 @@ test('the rule in a file with Windows line endings: the file keeps them, and a s
   // Plain line endings, and a file that mixes the two, get plain ones as before.
   assert.ok(!applyRule('a\nb\r\n').text.slice(6).includes('\r'));
   assert.ok(!applyRule('').text.includes('\r'));
+});
+
+test('an earlier wording of the rule is replaced where it stands, with or without its markers', () => {
+  const [old] = OLD_RULE_LINES;
+  assert.notEqual(old, RULE_LINE);
+  const marked = `# My project\n\n<!-- vault-mirror:start -->\n${old}\n<!-- vault-mirror:end -->\n\nText after the rule.\n`;
+  const up = applyRule(marked);
+  assert.equal(up.action, 'updated');
+  assert.equal(up.text, `# My project\n\n${RULE_BLOCK}\n\nText after the rule.\n`, 'no other line is touched');
+  assert.equal(applyRule(up.text).action, 'unchanged', 'a second run changes nothing');
+
+  // Pasted from the README, so the markers are missing: still one rule afterwards, in the same place.
+  for (const line of [old, RULE_LINE]) {
+    const bare = applyRule(`# My project\n${line}\nText after the rule.\n`);
+    assert.equal(bare.text, `# My project\n${RULE_BLOCK}\nText after the rule.\n`);
+    assert.equal(bare.text.split('Vault rule:').length, 2, 'never a second copy');
+    assert.equal(applyRule(bare.text).action, 'unchanged');
+  }
+  assert.equal(applyRule(old).text, RULE_BLOCK, 'a file that is only the old line, with no line ending');
+  // A line that only quotes the rule is somebody's own text and is left alone.
+  const quoted = applyRule(`> ${old}\n`);
+  assert.ok(quoted.text.startsWith(`> ${old}\n\n<!-- vault-mirror:start -->`));
+});
+
+test('the rule is written with the line endings the file already has', () => {
+  const block = RULE_BLOCK.split('\n').join('\r\n');
+  const fresh = applyRule('# My project\r\n\r\nKeep this line.\r\n');
+  assert.equal(fresh.text, `# My project\r\n\r\nKeep this line.\r\n\r\n${block}\r\n`);
+  assert.equal(applyRule(fresh.text).action, 'unchanged');
+  assert.equal(applyRule('# My project\r\nKeep this line.').text, `# My project\r\nKeep this line.\r\n\r\n${block}\r\n`);
+
+  const old = `# My project\r\n\r\n<!-- vault-mirror:start -->\r\n${OLD_RULE_LINES[0]}\r\n<!-- vault-mirror:end -->\r\nText after the rule.\r\n`;
+  const up = applyRule(old);
+  assert.equal(up.action, 'updated');
+  assert.equal(up.text, `# My project\r\n\r\n${block}\r\nText after the rule.\r\n`);
+  assert.ok(!/[^\r]\n/.test(up.text), 'no bare line feed is left in a Windows file');
+  assert.equal(applyRule(up.text).action, 'unchanged');
+  assert.equal(applyRule(`Intro.\r\n${OLD_RULE_LINES[0]}\r\nOutro.\r\n`).text, `Intro.\r\n${block}\r\nOutro.\r\n`);
 });
 
 test('worker count is automatic and conservative', () => {
