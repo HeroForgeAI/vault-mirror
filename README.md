@@ -158,7 +158,7 @@ Most people never type the search. They ask their AI, and their AI runs it.
 
 The ask, the command and the answer are from one real Claude Code session, the one recorded in [Watch it run](#watch-it-run). An AI words its answer a little differently each time. It works best when your question shares a word or two with the note. It can miss, and then your AI searches the files.
 
-The picture is drawn from real output on 15 invented notes: the vault in [`tests/fixtures/vault`](tests/fixtures/vault) without its edge-case folders, as [`docs/demo/setup.sh`](docs/demo/setup.sh) builds it. Its top line is the same search typed by hand. The command, the link and the paragraph are each one line in the tool and are wrapped here, and `/Users/you` stands in for the folder the example ran in. `-k 1` asks for one result; the default is 8.
+The picture is drawn from real output on 15 invented notes: the vault in [`tests/fixtures/vault`](tests/fixtures/vault) without its edge-case folders, as [`docs/demo/setup.sh`](docs/demo/setup.sh) builds it. Its top line is the same search typed by hand. The command, the link and the paragraph are each one line in the tool and are wrapped here, and `/Users/you` stands in for the folder the example ran in. `-k 1` asks for one result; the default is 8. A search also ends with one line of counts, which the picture and the recordings below were made before and leave out: "Returned about 22 words in 1 passage, from 1 note that holds about 62 words."
 
 The match number says how close the paragraph is to the question. A higher number is closer. It is not a percentage of how sure anything is.
 
@@ -177,6 +177,7 @@ $ vault-mirror search "why is the fruit going black underneath" -k 1
    /Users/you/garden-notes/Garden/Tomatoes.md:13
    obsidian://open?vault=garden-notes&file=Garden%2FTomatoes.md%23Problems
    Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.
+Returned about 22 words in 1 passage, from 1 note that holds about 62 words.
 ```
 
 And one that shows both lists:
@@ -193,7 +194,10 @@ Also contains these exact words:
    /Users/you/garden-notes/Kitchen/Sourdough.md:10
    obsidian://open?vault=garden-notes&file=Kitchen%2FSourdough.md%23Feeding%20the%20starter
    Feed the starter with equal weights of flour and water every morning. Keep the jar somewhere warm and discard half before each feed so it does not overflow.
+Returned about 85 words in 3 passages, from 3 notes that hold about 260 words.
 ```
+
+The last line counts what came back and what the notes it came from hold, in words. It is a notice, so it is printed beside the results and not as part of them, and `--quiet` leaves it out.
 
 The `obsidian://` line appears once Obsidian has opened the folder as a vault. Add `--json` to any command for one JSON object and nothing else. The fields are a public contract, listed in [the spec](docs/SPEC.md#search-question).
 
@@ -329,7 +333,7 @@ The picture at the top is the second case. In those 15 invented notes, a file se
 
 **It works best when your question shares a word or two with the note. It can miss, and then your AI searches the files.** Sending two or three wordings in one call helps. The checks behind that are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
-It does not make your AI more correct. What changes as a vault grows is how much your AI reads and how long you wait. We publish no figure for reading saved; measure it on your own vault.
+It does not make your AI more correct. What changes as a vault grows is how much your AI reads and how long you wait. We publish no figure for reading saved, because it depends on your notes and your questions. Every search measures it on your own vault and ends with one line, such as "Returned about 590 words in 5 passages, from 5 notes that hold about 9,200 words." Those are two counts of words, not tokens, and the tool works out nothing from them. The second count is what reading those notes in full would take, which is not always what your AI would have done without the tool. To turn the line off, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 **If ranking quality is what you need, use [qmd](https://github.com/tobi/qmd): it is the stronger search tool.** vault-mirror keeps two lists side by side and puts its effort into the read-only and 1:1 guarantees. How it compares with qmd, basic-memory, Smart Connections and obsidian-brain, feature by feature: [docs/COMPARISON.md](docs/COMPARISON.md).
 

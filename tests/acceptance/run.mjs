@@ -822,6 +822,13 @@ await step('X1', 'an exact phrase the list by meaning misses is found by the exa
   const human = vm(['search', QUESTION, '--no-sync', '-k', '2']);
   assert(/\nAlso contains these exact words:\n- {2}Hive records {2}› {2}Where things are\s+words: .*kestrel, ledger/.test(human.stdout), `human output: ${human.stdout.slice(-400)}`);
   assert(!/hybrid/i.test(human.stdout + human.stderr), 'never that word');
+  const READING = /^Returned about [\d,]+ words? in \d+ passages?, from \d+ notes? that holds? about [\d,]+ words?\.$/m;
+  assert(READING.test(human.stderr) && !/Returned about/.test(human.stdout), `the reading line is a notice on stderr, after the lists: ${human.stderr.slice(-200)}`);
+  assert(!/Returned about/.test(vm(['search', QUESTION, '--no-sync', '-k', '2', '--quiet']).stderr), '--quiet leaves the reading line out');
+  const rd = vm(['search', QUESTION, '--json', '--no-sync', '-k', '2']).json;
+  eq(rd.reading.passages, rd.results.length + rd.exactWords.length, 'reading.passages counts both lists');
+  eq(rd.reading.words, [...rd.results, ...rd.exactWords].reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.text.split(/\s+/).filter(Boolean).length, 0), 'reading.words is the text that came back');
+  assert(rd.reading.notes >= 1 && rd.reading.noteWords >= rd.reading.words, 'the notes hold at least what came back');
   const repeat = vm(['search', HIVE_SENTENCE, '--no-sync', '-k', '20']);
   eq(top(vm(['search', HIVE_SENTENCE, '--no-sync', '--json', '-k', '20']).json).vaultPath, 'Records/Hive records.md', 'rank 1 by meaning for its own sentence');
   assert(!/- {2}Hive records/.test(repeat.stdout), 'a passage already shown by meaning is not listed twice');

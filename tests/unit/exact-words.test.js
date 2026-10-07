@@ -349,6 +349,9 @@ test('the search path takes a ready embedder and a ready index, and returns both
   assert.ok(x.score > 0 && x.link && x.snippet && Array.isArray(x.flags));
   assert.deepEqual(Object.keys(r.timings), ['embedMs', 'searchMs', 'wordsMs', 'readMs']);
 
+  // Three passages came back, from three notes that hold five passages between them.
+  assert.deepEqual(r.reading, { passages: 3, words: 6 + 3 + 8, notes: 3, noteWords: (6 + 6) + 3 + (6 + 8) });
+
   const repeat = await searchReady({ embedder, engine, manifest: s.manifest, dataDir: s.dataDir, words }, { ...opts, queries: ['the passage the model likes best'] });
   assert.equal(repeat.results[0].passage, 'Meaning.md#0');
   assert.deepEqual(repeat.exactWords, [], 'it would only repeat a passage already shown, so it is left out');

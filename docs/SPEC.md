@@ -42,7 +42,7 @@ The first research brief came from a 2-core cloud sandbox. Everything below was 
 
 **Not measured by anything yet.** The build measures these and writes them to `docs/BENCHMARKS.md`; nothing in the docs may quote them before that: the passage count this tool's own chunker gives the reference vault (plan for tens of thousands); the flat index with real vectors (every store test so far used synthetic ones); the end-to-end rate through this tool's own pipeline; first-sync time on an ordinary laptop; crash safety of our sidecar (`kill -9` was only tried on ruvector's file); pool behaviour after a timeout; installing from a git tag; an interrupted or poisoned model download seen end to end; any machine other than the build machine (Intel Mac, Windows, Node 20 and 22); whether an `obsidian://` link opens when clicked; how often the index finds the right note for a question asked in other words (one small test missed about one in three, which is why the agent rule keeps file search as the fallback).
 
-**Claims this project never makes.** "Instant", "finds what search can't", any "N times less reading" figure, "hybrid search", "reranking", "HIPAA compliant". There is no command that estimates a saving, and no reading multiplier is printed by the tool or quoted in its docs.
+**Claims this project never makes.** "Instant", "finds what search can't", any "N times less reading" figure, "hybrid search", "reranking", "HIPAA compliant". There is no command that estimates a saving, and no reading multiplier is printed by the tool or quoted in its docs. A search prints two measured counts of words (what came back, and what the notes it came from hold) and works out nothing from them: no multiplier, no percentage, no tokens.
 
 **Pending studies.** Which embedding model, and embedded ruvector or ruvector-postgres. The design isolates both: model identity lives in the manifest and a change triggers one re-read; the embedder and the storage engine each sit behind one small interface (section 9).
 
@@ -147,7 +147,8 @@ One current vault. `init` on another folder switches to it and says so; each vau
     "workers": "auto",
     "obsidianExcludes": true,
     "searchAutoSyncMaxPassages": 20,
-    "resultCount": 8
+    "resultCount": 8,
+    "readingSummary": true
   },
   "embedding": { "model": "all-MiniLM-L6-v2" }
 }
@@ -164,6 +165,7 @@ One current vault. `init` on another folder switches to it and says so; each vau
 | `embedding.model` | `"all-MiniLM-L6-v2"` | The working default. It is a key into the model table in `src/embed/models.js` (section 9), which is where a different model plugs in. Changing it re-reads every note once |
 | `searchAutoSyncMaxPassages` | 20 | A search syncs first only when the waiting work is this small (seconds on a slow laptop) |
 | `resultCount` | 8 | Notes returned by a search |
+| `readingSummary` | `true` | A search ends with the reading line (see `search`). `false` leaves the line out; the `reading` fields in `--json` stay |
 
 Precedence: command flag, then `VAULT_MIRROR_HOME`, then `config.json`, then defaults. `~` is expanded. The file is written atomically (temp file, then rename).
 
@@ -294,7 +296,7 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
 | `morePassages` | How many other passages of this note also matched |
 | `flags` | `"possible-secret"` or `"possible-instruction-text"` from the screen |
 
-- JSON: `{ query, queries, results: [...], exactWords: [...], searched: { notes, passages }, inStep, syncNotice: null | "…", tookMs, timings }`. `exactWords` is its own array (see "The exact-words list" below) and is empty when there is nothing new to show. With `--no-sync` the vault is not looked at, but the index records whether its last sync ran to the end; after a stopped or killed sync `syncNotice` is `The last sync did not finish. This search covers what is indexed so far. Next: vault-mirror sync --detach`.
+- JSON: `{ query, queries, results: [...], exactWords: [...], reading: { passages, words, notes, noteWords }, searched: { notes, passages }, inStep, syncNotice: null | "…", tookMs, timings }`. `exactWords` is its own array (see "The exact-words list" below) and is empty when there is nothing new to show. With `--no-sync` the vault is not looked at, but the index records whether its last sync ran to the end; after a stopped or killed sync `syncNotice` is `The last sync did not finish. This search covers what is indexed so far. Next: vault-mirror sync --detach`.
 - Human output, per result:
 
 ```text
@@ -304,6 +306,13 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
    Start the tomatoes indoors six weeks before the last frost, then move them out once …
 ```
 
+- **The reading line.** After the lists, one line on stderr, where notices go, so stdout is the same with or without it:
+
+```text
+Returned about 590 words in 5 passages, from 5 notes that hold about 9,200 words.
+```
+
+  `passages` and `words` count every passage in both lists, as returned. `notes` is the notes those passages came from, and `noteWords` is the indexed text of those notes: every saved passage of each one, counted once per note. A word is a run of characters between spaces. Both counts come from records the search has already read, so nothing more is read from disk and the vault is not looked at. The indexed text leaves out a note's properties, dropped blocks and sections under `minWords`, so `noteWords` is a little under what the file holds. The line rounds to two figures and says "about"; the JSON fields are exact. It counts words, not tokens: the tool cannot know which tokenizer an AI uses. It is two counts and nothing worked out from them, and it does not say what an AI would have read without the tool. It is left out when nothing matched, with `--quiet`, and when `readingSummary` is `false`. `--json` always carries the fields.
 - Zero results on a synced index: `No passages matched. The index holds 1,230 notes. Try other words.` Exit 0.
 - Search runs log a count and duration only. The question text is never logged.
 
@@ -334,7 +343,7 @@ Also contains these exact words:
 
 #### The search path is one function
 
-`searchReady(ready, opts)` in `src/search/search.js` takes a **ready embedder** and a **ready index** (`{ embedder, engine, manifest, dataDir, words }`) and returns `{ results, exactWords, timings }`. It loads nothing and writes nothing. `runSearch` does the loading around it (the quick sync, the engine probe, the model, the exact-words table, the retry when a tidy rewrite replaces the data folder) and calls it once. A process that keeps the model and the index in memory can call the same function again and again: that is the door warm mode will use.
+`searchReady(ready, opts)` in `src/search/search.js` takes a **ready embedder** and a **ready index** (`{ embedder, engine, manifest, dataDir, words }`) and returns `{ results, exactWords, reading, timings }`. It loads nothing and writes nothing. `runSearch` does the loading around it (the quick sync, the engine probe, the model, the exact-words table, the retry when a tidy rewrite replaces the data folder) and calls it once. A process that keeps the model and the index in memory can call the same function again and again: that is the door warm mode will use.
 
 ### `status`
 

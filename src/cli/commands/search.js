@@ -1,6 +1,7 @@
 // @ts-check
 import { loadContext } from '../context.js';
 import { runSearch } from '../../search/search.js';
+import { readingLine } from '../../search/reading.js';
 import { VmError } from '../../errors.js';
 import { num } from '../output.js';
 
@@ -38,5 +39,7 @@ export async function searchCommand(args, ui) {
       body(x);
     }
   }
+  // A notice, not a result: it goes where notices go, so the lists above are the same with or without it.
+  if (r.reading.passages && ctx.cfg.vault?.readingSummary !== false) ui.info(readingLine(r.reading));
   return { vault: { name: ctx.vault.name, path: ctx.vault.real }, body: r };
 }
