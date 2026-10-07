@@ -280,9 +280,9 @@ It prints `In step: yes` only when nine named checks all hold. `status --verify`
 
 ## Built on ruvector
 
-[ruvector](https://github.com/ruvnet/ruvector) is an open-source vector engine by rUv (Reuven Cohen). It is where finding by meaning comes into vault-mirror: it turns each short passage of a note into a list of numbers that stands for its meaning, keeps those numbers on your computer, and finds the closest ones when you ask. vault-mirror uses it as a library and adds the parts around it: the sync that keeps the index matched to the vault, the read-only guarantee, the cutting of notes into passages, and the check that the two are in step. The reading model runs on your computer. You do not install or set up ruvector yourself; it comes with vault-mirror. Finding by meaning has limits: it works best when your question shares a word or two with the note, and it can miss.
+[ruvector](https://github.com/ruvnet/ruvector) is an open-source vector engine by rUv (Reuven Cohen, [@ruvnet](https://github.com/ruvnet)). It is where finding by meaning comes into vault-mirror: it turns each short passage of a note into a list of numbers that stands for its meaning, keeps those numbers on your computer, and finds the closest ones when you ask. vault-mirror uses it as a library and adds the parts around it: the sync that keeps the index matched to the vault, the read-only guarantee, the cutting of notes into passages, and the check that the two are in step. The reading model runs on your computer. You do not install or set up ruvector yourself; it comes with vault-mirror. Finding by meaning has limits: it works best when your question shares a word or two with the note, and it can miss.
 
-Thank you, rUv. vault-mirror exists because ruvector does the hard part well, and because [obsidian-brain](https://github.com/ruvnet/obsidian-brain) showed the way.
+Thank you, rUv ([@ruvnet](https://github.com/ruvnet)). vault-mirror exists because ruvector does the hard part well, and because [obsidian-brain](https://github.com/ruvnet/obsidian-brain) showed the way.
 
 ## When plain file search is enough, and when this helps
 
@@ -406,9 +406,9 @@ Planned, with no dates:
 
 vault-mirror stands on other people's work.
 
-- **[ruvector](https://github.com/ruvnet/ruvector)** by rUv (Reuven Cohen), MIT. The vector store and the local embedder that do the heavy lifting here.
-- **[obsidian-brain](https://github.com/ruvnet/obsidian-brain)** by rUv. The first Obsidian to ruvector bridge. Skipping unchanged notes by content fingerprint, leaving folders out, and a safety screen before indexing all come from it.
-- **[ruvnet-brain](https://github.com/stuinfla/ruvnet-brain)** by Stuart Kerr, MIT. A per-file ledger of source fingerprint to passage ids, and a forced rebuild when the chunker or model changes.
+- **[ruvector](https://github.com/ruvnet/ruvector)** by rUv (Reuven Cohen, [@ruvnet](https://github.com/ruvnet)), MIT. The vector store and the local embedder that do the heavy lifting here.
+- **[obsidian-brain](https://github.com/ruvnet/obsidian-brain)** by rUv ([@ruvnet](https://github.com/ruvnet)). The first Obsidian to ruvector bridge. Skipping unchanged notes by content fingerprint, leaving folders out, and a safety screen before indexing all come from it.
+- **[ruvnet-brain](https://github.com/stuinfla/ruvnet-brain)** by Stuart Kerr ([@stuinfla](https://github.com/stuinfla)), MIT. A per-file ledger of source fingerprint to passage ids, and a forced rebuild when the chunker or model changes.
 - **[qmd](https://github.com/tobi/qmd)** by Tobi Lütke, MIT. The reference for what a careful local search tool for an agent looks like, and the stronger tool for ranking quality.
 - **[all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)** by sentence-transformers, Apache-2.0. The reading model.
 - **[Obsidian](https://obsidian.md)**. Plain Markdown files in a folder are what make all of this possible. The link format follows [Obsidian URI](https://obsidian.md/help/uri). This project is not affiliated with Obsidian.
