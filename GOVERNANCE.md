@@ -16,15 +16,15 @@ What goes into the tool, what stays out, when a version ships, and whether a cha
 ## How a change gets merged
 
 1. It arrives as a pull request. Nothing is pushed straight to `main`, by anyone.
-2. A maintainer approves it. Either one's approval is enough.
+2. Mak Allen approves it. Every merge needs his approval, whoever opened the pull request. He says so on the pull request or merges it himself; the repository's rules require the pull request and the passing checks, and his yes is what lets it merge.
 3. The required checks are green.
 4. It is squash merged: one pull request becomes one commit on `main`.
 
-A maintainer's own pull request goes through the same checks. The other maintainer's review is asked for but is not required, so a fix is never stuck waiting on one person.
+A maintainer's own pull request goes through the same checks. Mark Allen's pull requests need Mak's approval like anyone else's. Mak's own pull requests still go through a pull request and the automated checks before he merges them.
 
 ## Releases
 
-Only maintainers tag and release. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and every release has an entry in [CHANGELOG.md](CHANGELOG.md). A published tag is never moved or deleted, because people install a pinned tag. A fix ships as a new version.
+Only Mak Allen tags and releases. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and every release has an entry in [CHANGELOG.md](CHANGELOG.md). A published tag is never moved or deleted, because people install a pinned tag. A fix ships as a new version.
 
 ## Becoming a maintainer
 
@@ -40,4 +40,4 @@ Security problems go through [SECURITY.md](SECURITY.md), privately. Behaviour is
 
 ## Changing this file
 
-Like everything else: a pull request that a maintainer approves.
+Like everything else: a pull request that Mak Allen approves.
