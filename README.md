@@ -180,6 +180,12 @@ A real run at real speed on 15 invented notes: sync, ask, edit a note, sync, ask
 
 The edit in the middle is made by the person, not by the tool. The tool only reads.
 
+<p align="center">
+<img src="docs/demo/claude-code.gif" alt="Claude Code in a terminal. The person types: Use vault-mirror to search my vault: why is the fruit going black underneath? Keep it short and name the note. Claude Code runs vault-mirror search with that question. The first result is the Tomatoes note, Problems section, match 0.42, with the path to the note. Claude Code answers: Most likely blossom end rot, per your Tomatoes note (Garden/Tomatoes.md, Problems section). It shows as a dark patch on the base of the fruit and comes from uneven watering, not disease." width="640">
+</p>
+
+The same thing inside Claude Code: you ask in plain English, and your AI runs the search. A real session at real speed on the same invented notes, cut down to the conversation: the start-up banner above the question is cropped off; [the script](docs/demo/claude-code.tape) says how. Codex reads the same rule from `AGENTS.md`.
+
 ## What you say to your AI
 
 You do not type the commands. You say what you want, and your AI runs them.
