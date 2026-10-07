@@ -85,7 +85,7 @@ export const TOOLS = [
     name: 'vault_status',
     method: 'status',
     title: 'Is the vault in sync?',
-    description: 'Check whether the index is in step with the vault. It answers yes or not yet, with the counts: notes on disk, notes in the index, and notes waiting to sync. Use it when asked "is my vault in sync?" or to see how far a running sync is. It never changes a note.',
+    description: 'Check whether the index is in step with the vault. It answers yes or not yet, with the counts: notes on disk, notes in the index, and notes waiting to sync. Use it when asked "is my vault in sync?" or to see how far a running sync is. It may refresh the index\'s own files, which live outside the vault. It never changes a note.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     outputSchema: {
       type: 'object',

@@ -995,7 +995,7 @@ Three, defined in one file, `src/mcp/tools.js`. That list is the whole surface.
 | Tool | Takes | Hands back | Writes |
 | --- | --- | --- | --- |
 | `search_vault` | `query`; optional `other_wordings` (up to 4) and `limit` (1 to 20) | `results` and `exactWords` (each passage: `note`, `heading`, `path`, `line`, `score` or `words`, `link`, `text`, and `caution` when flagged), `index` (`notes`, `passages`, `notesWaiting`, `syncRunning`), `words` (`inPassages`, `inTheirNotes`), `notices`, `modelWasLoaded`, `tookMs` | nothing |
-| `vault_status` | nothing | `inStep`, the counts of section 11, `syncRunning`, `lastSync`, `failedChecks`, `next` | nothing in the vault (as `status`: it may bring the engine or the exact-words table in step) |
+| `vault_status` | nothing | `inStep`, the counts of section 11, `syncRunning`, `lastSync`, `failedChecks`, `next` | nothing in the vault (as `status`: it may bring the engine or the exact-words table in step, and its description says so) |
 | `sync_index` | optional `wait_seconds` (0 to 45, default 20) | `started`, `finished`, `inStep`, `changes`, `passages`, `seconds`, or `running` with a percent, and `next` | the index folder only |
 
 Rules that hold for every tool:

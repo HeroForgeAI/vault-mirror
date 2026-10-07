@@ -93,7 +93,7 @@ It should call `search_vault` and answer from a passage, naming the note. Then t
 | Tool | What it does | Does it write anything? |
 | --- | --- | --- |
 | `search_vault` | Searches your notes by meaning and by exact words. Returns short passages, each with its note, heading, file path, line, match score and `obsidian://` link. | No. |
-| `vault_status` | Answers "is my vault in sync?": yes or not yet, with the counts of notes on disk, in the index and waiting. | Not to your vault. |
+| `vault_status` | Answers "is my vault in sync?": yes or not yet, with the counts of notes on disk, in the index and waiting. | Never to your vault. Like `vault-mirror status`, it may refresh the index's own files when one is behind. |
 | `sync_index` | Brings the index up to date: reads the notes that changed since the last sync. | Only to vault-mirror's own index folder, outside your vault. Never to the vault. |
 
 ### `search_vault`
@@ -141,7 +141,7 @@ A search never starts a sync by itself. It searches what is indexed and says wha
 
 ### `vault_status`
 
-It takes nothing. It runs the same check as `vault-mirror status` and hands back `inStep` (true or false), the counts, `syncRunning` with a percent while a sync runs, and `next`: the one next step when there is one.
+It takes nothing. It runs the same check as `vault-mirror status`, which may refresh the index's own files (never the vault), and hands back `inStep` (true or false), the counts, `syncRunning` with a percent while a sync runs, and `next`: the one next step when there is one.
 
 ### `sync_index`
 
@@ -165,6 +165,17 @@ It starts the same background sync as `vault-mirror sync --detach`, then waits. 
 - stop your AI from editing notes with its own file tools, if you ask it to. That is your AI, not this server.
 
 The passages a search returns go to your AI's service, as any file your AI reads does. That is the same for the commands.
+
+## Known limits
+
+- **One helper per app.** Each app that has searched in the last 5 minutes holds its own copy of the reading model, about 0.6 GB each. Two apps searching at the same time use about 1.2 GB. The helpers are not shared.
+- **One entry per vault.** A server serves the one vault set up in its home folder. Two vaults are two entries, each with its own home folder ([More than one vault](#more-than-one-vault)).
+- **Tidier, not shorter.** The result is structured, with nothing said twice. It is not always less to read. For one search that returned 8 notes and one exact-words passage, the tool's result was 3,578 characters, the command's plain text 3,250, and the command's `--json` 6,351.
+- **A search never syncs by itself.** It says how many notes are waiting and names `sync_index`.
+- **Long questions.** A question longer than about forty-five words makes the server replace its reader once, and questions are a little slower to read until the reader has been idle.
+- **Not in a release yet.** It is new since 0.1.0.
+- **Measured on one Mac only.** It passes its end-to-end test on macOS, Linux and Windows; the timings below are from one machine.
+- **Not tried:** Claude Desktop itself, and any index larger than 2,199 passages through the server.
 
 ## Which vault it serves
 
