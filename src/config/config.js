@@ -18,6 +18,7 @@ export const VAULT_DEFAULTS = Object.freeze({
   obsidianExcludes: true,
   searchAutoSyncMaxPassages: 20,
   resultCount: 8,
+  readingSummary: /** @type {boolean} */ (true),
 });
 
 /** The folder everything is written under. */

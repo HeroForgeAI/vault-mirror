@@ -7,7 +7,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadManifest, currentDataName } from '../store/manifest.js';
-import { readRecord } from '../store/sidecar.js';
 import { liveOwner } from '../store/lock.js';
 import { exactFromSidecar } from '../engine/build.js';
 import { lookupVault } from '../vault/obsidian-registry.js';
@@ -16,7 +15,7 @@ import { planOnly } from '../sync/run.js';
 import { readProgress } from '../sync/progress.js';
 import { VmError } from '../errors.js';
 import { plural } from '../cli/output.js';
-import { leanSearch, wordCount } from './shape.js';
+import { leanSearch } from './shape.js';
 import { LIMIT_MAX } from './tools.js';
 
 /** Changes whenever the saved index does: every save replaces manifest.json by a rename. @param {string} indexDir */
@@ -99,20 +98,6 @@ export function createSession(o) {
     }
   }
 
-  /** Words in the passages handed back, and in the indexed text of the notes they came from. @param {HeldIndex} h @param {{ results: any[], exactWords: any[] }} found */
-  function wordTotals(h, found) {
-    try {
-      const seen = new Set(); let inPassages = 0; let inTheirNotes = 0;
-      for (const x of [...found.results, ...found.exactWords]) {
-        inPassages += wordCount(x.text);
-        if (seen.has(x.vaultPath)) continue;
-        seen.add(x.vaultPath);
-        for (const p of readRecord(h.loaded.dataDir, h.loaded.manifest.notes[x.vaultPath].log).passages) inTheirNotes += wordCount(p.text);
-      }
-      return { inPassages, inTheirNotes };
-    } catch { return null; } // the counts are an extra; a search never fails for them
-  }
-
   /**
    * @param {import('../sync/run.js').Context} ctx
    * @param {{ queries: string[], count?: number }} opts
@@ -142,7 +127,7 @@ export function createSession(o) {
     const notices = st.notice ? [st.notice] : [];
     if (registry.state !== 'registered' && !(registry.state === 'no-list' && registry.vaultParam)) notices.push('Open this folder as a vault in Obsidian once, and links will work. File paths work either way.');
     return leanSearch({
-      vault: ctx.vault.name, found, totals: h.loaded.manifest.totals, state: st, words: wordTotals(h, found), notices,
+      vault: ctx.vault.name, found, totals: h.loaded.manifest.totals, state: st, words: found.reading ? { inPassages: found.reading.words, inTheirNotes: found.reading.noteWords } : null, notices,
       modelWasLoaded: read.wasLoaded, tookMs: Math.round(performance.now() - t0),
     });
   }

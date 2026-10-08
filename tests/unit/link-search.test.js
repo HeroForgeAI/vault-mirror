@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildLink, encodeStrict, stripHeading, headingPart } from '../../src/search/link.js';
 import { snippet, collapse, fetchNotes, unfinishedNotice } from '../../src/search/search.js';
+import { countWords, measureReading, readingLine } from '../../src/search/reading.js';
+import { VAULT_DEFAULTS } from '../../src/config/config.js';
 import { screenText, maskSecrets } from '../../src/screen/screen.js';
 import { ODD_NAMES } from '../helpers/make-notes.mjs';
 
@@ -90,4 +92,27 @@ test('a search told not to sync still says when the last sync was cut short', ()
   const text = 'The last sync did not finish. This search covers what is indexed so far. Next: vault-mirror sync --detach';
   assert.equal(unfinishedNotice(m(null)), text, 'a first sync that was killed never wrote a last-run line');
   assert.equal(unfinishedNotice(m({ complete: false })), text, 'a sync stopped with Ctrl-C');
+});
+
+test('the reading line: two counts of words from records already read, and nothing worked out from them', () => {
+  assert.equal(countWords('  Water the   tomatoes\nevery morning. '), 5);
+  assert.equal(countWords(''), 0);
+  /** @type {Record<string, { passages: { text: string }[] }>} */
+  const saved = { 'A.md': { passages: [{ text: 'one two three' }, { text: 'four five' }, { text: 'six' }] }, 'B.md': { passages: [{ text: 'seven eight' }] } };
+  /** @type {string[]} */
+  const read = [];
+  const record = (/** @type {string} */ key) => { read.push(key); return saved[key]; };
+  // Two passages of one note and one of another: each note is counted once.
+  const r = measureReading([{ vaultPath: 'A.md', text: 'one two three' }, { vaultPath: 'B.md', text: 'seven eight' }, { vaultPath: 'A.md', text: 'six' }], record);
+  assert.deepEqual(r, { passages: 3, words: 6, notes: 2, noteWords: 8 });
+  assert.deepEqual(read, ['A.md', 'B.md'], 'only the notes in the lists are looked at');
+  assert.deepEqual(measureReading([], record), { passages: 0, words: 0, notes: 0, noteWords: 0 });
+
+  assert.equal(readingLine({ passages: 5, words: 587, notes: 5, noteWords: 9214 }), 'Returned about 590 words in 5 passages, from 5 notes that hold about 9,200 words.');
+  assert.equal(readingLine({ passages: 1, words: 19, notes: 1, noteWords: 143 }), 'Returned about 19 words in 1 passage, from 1 note that holds about 140 words.');
+  assert.equal(readingLine({ passages: 11, words: 1250, notes: 9, noteWords: 123456 }), 'Returned about 1,300 words in 11 passages, from 9 notes that hold about 120,000 words.');
+  const line = readingLine(r);
+  assert.ok(!/token|saved|saving|percent|%|times|\dx\b/i.test(line), 'words only: no tokens, no multiplier, no figure for a saving');
+  assert.ok(!line.includes('\n'), 'one line');
+  assert.equal(VAULT_DEFAULTS.readingSummary, true, 'on unless the settings file turns it off');
 });

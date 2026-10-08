@@ -29,9 +29,12 @@ $ vault-mirror search "why is the fruit going black underneath" -k 1
    /Users/you/garden-notes/Garden/Tomatoes.md:13
    obsidian://open?vault=garden-notes&file=Garden%2FTomatoes.md%23Problems
    Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.
+Returned about 22 words in 1 passage, from 1 note that holds about 62 words.
 ```
 
 `/Users/you` stands in for the folder the example ran in. The tool prints the full path so your AI can open the file.
+
+The last line of a search counts, in words, what came back and what the notes it came from hold. It is how you see, on your own vault, how much your AI was handed to read. `--quiet` leaves it out for one search, and `"readingSummary": false` in the [settings](CONFIGURATION.md) turns it off.
 
 ## On a larger vault
 

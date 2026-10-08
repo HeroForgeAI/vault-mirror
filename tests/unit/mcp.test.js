@@ -10,7 +10,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { tmpDir } from '../helpers/tmp.mjs';
 import { BIN, FIXTURE_VAULT, copyVault, vaultListing, startRaw, strayLines } from '../helpers/mcp.mjs';
 import { TOOLS, INSTRUCTIONS, WAIT_MAX, wordings } from '../../src/mcp/tools.js';
-import { leanHit, leanSearch, leanStatus, leanSync, wordCount } from '../../src/mcp/shape.js';
+import { leanHit, leanSearch, leanStatus, leanSync } from '../../src/mcp/shape.js';
 import { buildServer, problem } from '../../src/mcp/server.js';
 import { createReader } from '../../src/mcp/reader.js';
 import { commandProblem, lastJson } from '../../src/mcp/cli.js';
@@ -174,8 +174,6 @@ test('status and sync answers pass the schemas a client was shown', async () => 
 });
 
 test('shapes: a lean passage, the status answer with its one next step, and the three sync answers', () => {
-  assert.equal(wordCount('  one two\nthree  '), 3);
-  assert.equal(wordCount(''), 0);
   assert.deepEqual(leanHit({ ...HIT, link: null, section: '' }, 'meaning'), { note: 'Tomatoes', heading: '', path: '/v/Garden/Tomatoes.md', line: 13, score: 0.421, text: 'Blossom end rot shows up.' });
   const flagged = leanHit({ ...HIT, words: ['rot'], flags: ['possible-instruction-text'] }, 'words');
   assert.deepEqual(Object.keys(flagged), ['note', 'heading', 'path', 'line', 'words', 'link', 'text', 'caution']);
