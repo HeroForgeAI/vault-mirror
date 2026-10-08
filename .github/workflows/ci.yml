@@ -1,10 +1,16 @@
 name: CI
 
-# test:        unit tests, type check and lint. They need no network and no reading model.
-#              macOS is the verified platform and decides the result. Linux and Windows run too,
-#              but are not verified yet, so a failure there is shown and does not fail the workflow.
-# acceptance:  the end-to-end script on macOS: the read-only checks, a kill -9 in the middle of a
-#              sync, two syncs racing. It downloads the reading model once and caches it.
+# test:        unit tests, type check and lint, on macOS, Linux and Windows. They need no network and
+#              no reading model. A failure on any of the three fails the workflow.
+# acceptance:  the end-to-end script: the real commands (init, sync, search, status, rebuild, doctor)
+#              on the invented fixture vault, with a checksum of the vault compared after every
+#              command, a forced stop in the middle of a sync, and two syncs racing. It downloads the
+#              reading model once and caches it. It runs on macOS, Linux and Windows. Some of its steps
+#              have time limits, so a failure is shown on its own row and does not fail the workflow.
+# first-run:   the first ten minutes of a new user: install with the README's line (pointed at this
+#              commit), then doctor, init, sync, status, search, edit, sync, search on a small invented
+#              vault whose path has a space and whose notes have non-English names. Real output and
+#              timings go to the job log. A failure on any system fails the workflow.
 
 on:
   push:
@@ -24,8 +30,6 @@ jobs:
     name: ${{ matrix.os }}, Node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
-    # Remove a platform from this condition once it has a green run on record.
-    continue-on-error: ${{ matrix.os != 'macos-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,13 +56,23 @@ jobs:
         run: npm run lint
 
   acceptance:
-    name: Acceptance, macOS, Node 22
-    runs-on: macos-latest
-    timeout-minutes: 30
-    # This job has not yet run on a hosted runner, and some of its steps have time limits that were
-    # set on a faster machine. Until it has one green run on record it reports without failing the
-    # workflow. Delete the next line after that run, so the badge covers it.
+    name: Acceptance, ${{ matrix.label }}, Node 22
+    runs-on: ${{ matrix.os }}
+    # A small hosted runner has no reader pool and needs about half an hour for the whole script.
+    timeout-minutes: 60
+    # Some steps have time limits that were set on a faster machine, and a hosted runner can be slow.
+    # A failure is shown on the job's own row and does not fail the workflow.
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, label: macOS }
+          - { os: ubuntu-latest, label: Linux }
+          - { os: windows-latest, label: Windows }
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,9 +84,87 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ruvector/models
-          key: reading-model-${{ hashFiles('src/embed/models.js') }}
+          key: reading-model-${{ runner.os }}-${{ hashFiles('src/embed/models.js') }}
       - run: npm ci
       - name: Doctor (loads the native engine; downloads the reading model on a cache miss)
         run: node bin/vault-mirror.js doctor
+      # The debug log holds no note text, no note names and no search questions.
+      - name: Show doctor's debug log when it failed
+        if: failure()
+        run: cat ~/.vault-mirror/logs/debug.log || true
+      # Runs after a failed doctor too: the job still fails, and the log says how far the real commands get.
       - name: Acceptance (end to end on the invented fixture vault)
+        if: ${{ !cancelled() }}
         run: node tests/acceptance/run.mjs --vault tests/fixtures/vault
+
+  first-run:
+    name: First run, ${{ matrix.os }}, Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Cache the reading model
+        uses: actions/cache@v4
+        with:
+          path: ~/.ruvector/models
+          key: reading-model-${{ runner.os }}-${{ hashFiles('src/embed/models.js') }}
+      # The README's install line as it is written there (no quotes), pointed at this commit. On Windows it is
+      # typed into PowerShell and then into the command prompt, the two places a person there would type it.
+      - name: Install with the README's line (bash)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: npm install -g github:${{ github.event.pull_request.head.repo.full_name || github.repository }}#${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install with the README's line (PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          npm install -g github:${{ github.event.pull_request.head.repo.full_name || github.repository }}#${{ github.event.pull_request.head.sha || github.sha }}
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      # The command is found, answers, and hands back its exit codes: 0, and 2 when no vault is set up yet.
+      - name: The command answers in PowerShell, with the right exit codes
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          (Get-Command vault-mirror).Source
+          vault-mirror --version
+          if ($LASTEXITCODE -ne 0) { Write-Host "--version: wanted exit 0, got $LASTEXITCODE"; exit 1 }
+          vault-mirror status
+          if ($LASTEXITCODE -ne 2) { Write-Host "status with no vault set up: wanted exit 2, got $LASTEXITCODE"; exit 1 }
+          vault-mirror no-such-command
+          if ($LASTEXITCODE -ne 2) { Write-Host "an unknown command: wanted exit 2, got $LASTEXITCODE"; exit 1 }
+          exit 0
+      # A step is a batch file, and one batch file runs another with "call". A person at the prompt types the line without it.
+      - name: Install with the README's line (Windows command prompt)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: call npm install -g github:${{ github.event.pull_request.head.repo.full_name || github.repository }}#${{ github.event.pull_request.head.sha || github.sha }}
+      - name: The command answers in the Windows command prompt, with the right exit codes
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          where vault-mirror
+          call vault-mirror --version
+          if not %ERRORLEVEL%==0 exit /b 1
+          call vault-mirror status
+          if not %ERRORLEVEL%==2 exit /b 1
+          call vault-mirror no-such-command
+          if not %ERRORLEVEL%==2 exit /b 1
+          exit /b 0
+      - name: The command answers in bash, with the right exit codes
+        shell: bash
+        run: |
+          command -v vault-mirror
+          vault-mirror --version
+          code=0; vault-mirror status || code=$?; [ "$code" = 2 ] || { echo "status with no vault set up: wanted exit 2, got $code"; exit 1; }
+          code=0; vault-mirror no-such-command || code=$?; [ "$code" = 2 ] || { echo "an unknown command: wanted exit 2, got $code"; exit 1; }
+      # No shell is set: PowerShell on Windows, bash elsewhere, as a new user would have it.
+      - name: The first ten minutes of a new user (real output and timings)
+        run: node tests/acceptance/first-run.mjs --installed --default-home

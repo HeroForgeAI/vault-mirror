@@ -1,7 +1,7 @@
 // @ts-check
 // Version numbers in one place.
 export const TOOL_NAME = 'vault-mirror';
-export const TOOL_VERSION = '0.1.0';
+export const TOOL_VERSION = '0.1.1';
 /** Any change to chunker output bumps this, and every note is re-read once. */
 export const CHUNKER_VERSION = 1;
 export const SCHEMA = 1;

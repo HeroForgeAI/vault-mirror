@@ -45,7 +45,16 @@ export const ODD_BODIES = ['The zebra finch built its nest inside the copper gut
 export function makeOddNames(vault) {
   const written = [];
   const put = (/** @type {string} */ rel, /** @type {string} */ body) => {
-    try { fs.mkdirSync(path.dirname(path.join(vault, rel)), { recursive: true }); fs.writeFileSync(path.join(vault, rel), body); written.push(rel); } catch { /* this system cannot hold that name */ }
+    const dir = path.dirname(path.join(vault, rel)); const name = path.basename(rel);
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      const before = new Set(fs.readdirSync(dir));
+      fs.writeFileSync(path.join(vault, rel), body);
+      if (fs.readdirSync(dir).includes(name)) { written.push(rel); return; }
+      // Windows takes a name with a colon without an error and makes a file named by the part before it.
+      // That is not the note that was asked for: remove whatever appeared.
+      for (const made of fs.readdirSync(dir)) if (!before.has(made)) fs.rmSync(path.join(dir, made), { force: true });
+    } catch { /* this system cannot hold that name */ }
   };
   ODD_NAMES.forEach((name, i) => put(path.join('Odd', name), `# Odd name ${i}\n\n${ODD_BODIES[i]}\n`));
   put(path.join('Odd', 'Trailing space ', ' Leading space.md'), `# Spaces\n\n${sentence(3200)} ${sentence(3201)}\n`);

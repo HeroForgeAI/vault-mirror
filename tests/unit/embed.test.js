@@ -1,4 +1,5 @@
-import test from 'node:test';
+import test, { beforeEach } from 'node:test';
+import { setImmediate } from 'node:timers';
 import assert from 'node:assert/strict';
 import { createEmbedder, withEmbedder, vectorProblem } from '../../src/embed/embedder.js';
 import { createPool } from '../../src/embed/pool.js';
@@ -17,6 +18,9 @@ const standIn = modelFiles(modelEntry(DEFAULT_MODEL));
 fs.mkdirSync(standIn.dir, { recursive: true });
 fs.writeFileSync(standIn.model, Buffer.alloc(1024 * 1024)); // the smallest size the embedder accepts as a finished download
 fs.writeFileSync(standIn.tokenizer, JSON.stringify(tinyTokenizer()));
+
+// The embedder holds stdout while it works; let the test reporter print the previous result first.
+beforeEach(() => new Promise((r) => setTimeout(r, 5)));
 
 const DIMS = createEmbedder({ model: DEFAULT_MODEL, lib: {} }).dimensions;
 const good = (seed = 1) => Array.from({ length: DIMS }, (_, i) => Math.sin(seed + i));
@@ -50,7 +54,21 @@ test('shutdown runs after success and after a thrown error', async () => {
   assert.equal(lib2.calls.shutdown, 1, 'safe to call twice');
 });
 
-test('shutdown runs when a signal asks the work to stop', async () => {
+test('with one reader, the process still notices a signal or a timer between passages', async () => {
+  // One reader works on the main thread. If it never lets the system in, a Ctrl+C waits until the whole sync is over.
+  const e = createEmbedder({ model: 'all-MiniLM-L6-v2', lib: fakeLib() });
+  let stop = false; let done = 0;
+  await withEmbedder(e, async () => {
+    await e.embedPassages(['x']);
+    setImmediate(() => { stop = true; }); // stands in for the signal: both wait for the same turn of the event loop
+    for (; done < 1000 && !stop; done++) await e.embedPassages(['x', 'y']);
+  });
+  assert.equal(stop, true);
+  assert.ok(done < 5, `noticed after ${done} of 1000 batches`);
+});
+
+// Windows has no SIGHUP that one process can send to another (process.kill fails with ENOSYS), so there is nothing to send.
+test('shutdown runs when a signal asks the work to stop', { skip: process.platform === 'win32' ? 'Windows cannot send this signal to a process' : false }, async () => {
   const lib = fakeLib();
   const e = createEmbedder({ model: 'all-MiniLM-L6-v2', lib });
   let stop = false;

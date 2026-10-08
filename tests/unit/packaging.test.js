@@ -88,8 +88,8 @@ test('read-only, static: only safe-write.js references an fs write API, and noth
 
 test('the repo ignores tool droppings, and the tree holds none', () => {
   const ignore = read('.gitignore');
-  for (const line of ['node_modules/', 'ruvector.db', '*.db', '*.rvf', '.claude/', '.claude-flow/', '.swarm/', '*.log', 'vault-index/']) assert.ok(ignore.split('\n').includes(line), `.gitignore covers ${line}`);
+  for (const line of ['node_modules/', 'ruvector.db', '*.db', '*.rvf', '.claude/', '.claude-flow/', '.swarm/', '*.log', 'vault-index/']) assert.ok(ignore.split(/\r?\n/).includes(line), `.gitignore covers ${line}`);
   /** @param {string} dir @returns {string[]} */
   const all = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => (['node_modules', '.git'].includes(d.name) ? [] : d.isDirectory() ? all(path.join(dir, d.name)) : [path.join(dir, d.name)]));
-  for (const f of all(ROOT)) assert.ok(!/(^|\/)(ruvector\.db|kb\.db)$/.test(f), `${f} must not exist`);
+  for (const f of all(ROOT)) assert.ok(!/(^|[\\/])(ruvector\.db|kb\.db)$/.test(f), `${f} must not exist`);
 });

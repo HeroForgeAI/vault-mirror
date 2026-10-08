@@ -231,7 +231,7 @@ Vault rule: search the vault index first (`vault-mirror search "<question>"`) an
 <!-- vault-mirror:end -->
 ```
 
-- **The wording of the rule is fixed.** It says "read the passages it returns" and gives file search as the fallback. It never says "open only the notes it returns": in one small test the index missed about one reworded question in three, and searching the files saved the answer. Any lesson, guide or README that quotes the rule quotes this constant word for word.
+- **The wording of the rule is fixed.** It says "read the passages it returns" and gives file search as the fallback. It never says "open only the notes it returns": in one small test the index missed about one reworded question in three, and searching the files saved the answer. Any guide or README that quotes the rule quotes this constant word for word.
 - Human output: `Set up notes (1,240 notes). It only reads your notes. The index lives in ~/.vault-mirror/indexes/notes-3fa1c2d4, outside the vault, and holds a copy of your notes' text on this computer only.` then `Wrote the vault rule to CLAUDE.md and AGENTS.md in <project>. (Wrong folder? Run init again with --project <folder>.)` then `Next: vault-mirror sync`.
 - JSON: `{ indexDir, notesFound, excluded: [], ruleFiles: [{ file, action: "created" | "updated" | "unchanged" | "skipped", reason }] }`.
 
@@ -287,7 +287,7 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
 | `score` | Similarity, higher is better: `1 - distance`, clamped to 0..1 (cosine distance can reach 2), rounded to 3 places. Converted in one place |
 | `note` | The file name without `.md` |
 | `section` | The heading trail under the title, joined with ` > `; empty string when the passage sits before the first heading |
-| `path` | Absolute path on disk, the thing an agent opens. `vaultPath` is vault-relative, forward slashes, NFC |
+| `path` | Absolute path on disk, the thing an agent opens, spelled as the disk spells it. `vaultPath` is vault-relative, forward slashes, NFC |
 | `line` | 1-based line where the passage starts |
 | `link` | Built at print time, never stored (section 12). `null` when the vault is not registered with Obsidian or the file name contains `#` |
 | `snippet` | At most 400 characters, never the prefix, never cut mid-word. A span the screen matched as a possible secret is replaced with `[hidden: looks like a key]` |
@@ -329,7 +329,7 @@ Also contains these exact words:
 ```
 
 - **It never fails a search.** If the table behind it (section 8) cannot be read or made, the list is left out, one line goes to the debug log, and the list by meaning stands.
-- **Wording.** Member-facing words are "by meaning" and "exact words". The tool, its help, its docs and its tests never use the name this project never uses for it (section 1, "Claims this project never makes").
+- **Wording.** User-facing words are "by meaning" and "exact words". The tool, its help, its docs and its tests never use the name this project never uses for it (section 1, "Claims this project never makes").
 - `timings` gains `wordsMs`: loading the table, ranking, and reading the passages back.
 
 #### The search path is one function
@@ -480,7 +480,7 @@ Each has an invented fixture note (never a real note name).
 
 ## 8. Ids, the manifest and the sidecar
 
-**Ids.** `"<vaultPath>#<n>"`: the vault-relative path (forward slashes, NFC, no-break spaces turned into ordinary spaces as Obsidian does, exact case from disk, segments untrimmed) and the passage number from 0, with no gaps. Parsed at the last `#`. Stable across runs for unchanged notes. The file is always opened by its on-disk name, which the walk keeps beside the key. If two files on disk normalise to the same key, the first by raw name is indexed and the other is left out and listed (`duplicate-path`). Comparing keys with letter case ignored is `[v0.1.1]`: it only matters on case-sensitive disks and needs the same collision rule tested there.
+**Ids.** `"<vaultPath>#<n>"`: the vault-relative path (forward slashes, NFC, no-break spaces turned into ordinary spaces as Obsidian does, exact case from disk, segments untrimmed) and the passage number from 0, with no gaps. Parsed at the last `#`. Stable across runs for unchanged notes. The file is always opened by its on-disk name, which the walk keeps beside the key and the manifest keeps as `file` whenever it differs from the key (a name with an accent stored as a letter plus a separate mark, or with a no-break space). A search result's `path` is built from that name: macOS opens either form, Windows and Linux open only the one on disk. If two files on disk normalise to the same key, the first by raw name is indexed and the other is left out and listed (`duplicate-path`). Comparing keys with letter case ignored is `[v0.1.1]`: it only matters on case-sensitive disks and needs the same collision rule tested there.
 
 **`manifest.json`** (rewritten atomically at every checkpoint; an unknown `schema` stops with a message, never guesses):
 
@@ -511,6 +511,7 @@ Each has an invented fixture note (never a real note name).
 - `settingsHash` covers only settings that change chunk output (`minWords`, `dropFences`, the budget, the counter's name). `exclude` is a filter, not a chunk setting.
 - **"The model changed" means exactly this:** the model name, the SHA-256 of the model file, the SHA-256 of the tokenizer file, or the vector size differs from the manifest. The tokenizer hash is part of the identity because the tokenizer is what sets the reading window and what the counter is built from. Hashes are of the files actually on disk, re-taken only when a file's size or modified time changes. `maxLength` and the library's own space id are recorded for the record and **never compared** (the space id changes between settings that give bit-identical vectors).
 - **The engine block is a fingerprint too.** If the loaded `ruvector`, `@ruvector/core` or native package version, the index type or the metric differs from the manifest, the engine file is rebuilt from the sidecar (seconds, nothing re-read) and the block is updated.
+- A note entry has a `file` field only when the name on disk is spelled differently from its key: the vault-relative path as the disk holds it, forward slashes. An index made before 0.1.1 has none; the next sync adds it as bookkeeping, without reading a note again and without changing the stamp.
 - `leftOut` keys are the first 16 hex of the SHA-256 of the vault path, so the fast path works for left-out notes without the index folder ever holding their names.
 
 **`passages.jsonl`** (the last record per path wins):
@@ -1086,7 +1087,7 @@ Version 1 of this spec was read by a skeptic reviewer (findings S1 to S25, plus 
 | S15 | The mass-delete guard could trip on a folder rename, and an `include` typo bypassed it | **Accepted.** Renames are matched by hash first; every other removal counts, whatever caused it; `include` is cut |
 | S16 | iCloud handling rested on an unverified stub rule | **Accepted.** Stub rule kept and ordered before the dot-skip; the read timeout is the rule that does not depend on it |
 | S17 | Exit 3 for "not in step" makes agents report failure | **Accepted.** Exit 0 with `inStep: false` and a plain sentence; code 3 is gone |
-| S18 | A pinned model hash as a hard stop could loop members | **Accepted.** Mismatch warns; the hash on disk is the identity |
+| S18 | A pinned model hash as a hard stop could loop users | **Accepted.** Mismatch warns; the hash on disk is the identity |
 | S19 | Pool behaviour after a timeout was never provoked | **Accepted.** Any pool error discards the pool; two errors finish single-threaded |
 | S20 | `debug.log` held note paths and was offered for public reports | **Accepted.** Logs use the hashed key |
 | S21a | `...` closed frontmatter here but not in Obsidian | **Accepted.** Only `---` |
@@ -1167,7 +1168,7 @@ After version 2, a source-level study of ruvector 0.3.3 and of Obsidian's own co
 | C6 | Clear `RUVECTOR_BACKEND` before loading | Absent | **One line** in the loader row (section 3) |
 | C7 | Insert first, delete only leftover ids | No longer applies | **Not applicable.** Version 2 rebuilds the engine file whole from the sidecar; there is no per-note engine write to optimise |
 | C8 | Count check before the switch; `isNative()` on every command | Both present | **Confirmed**; the count check is now spelled "before switching" |
-| Task | Resource defaults for members' laptops | Workers capped at 4 | **Added.** Automatic and conservative worker count, below-normal priority for any sync that starts the pool, one calm sentence about what the computer will feel like, `--full-speed` to opt out |
+| Task | Resource defaults for users' laptops | Workers capped at 4 | **Added.** Automatic and conservative worker count, below-normal priority for any sync that starts the pool, one calm sentence about what the computer will feel like, `--full-speed` to opt out |
 | Task | Model and engine choices are still under study | One engine interface; model named throughout | **Added.** An embedder interface beside the engine interface; a model table as the one place a model plugs in; no model name or vector size outside `src/embed/`; open questions 4 and 5 marked open |
 
 **Rejected or deferred in round 3, with the reason.**

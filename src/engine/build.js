@@ -123,8 +123,10 @@ export async function ensureEngine(ctx) {
   /** @type {import('./engine.js').Engine} */
   let engine;
   try {
-    ({ engine } = await deps.create(file, ctx.dimensions));
-    await deps.selfTest(engine, ctx.dimensions, file);
+    const made = await deps.create(file, ctx.dimensions);
+    engine = made.engine;
+    const flat = made.flat; // already read where the open file cannot be (Windows)
+    await deps.selfTest(engine, ctx.dimensions, flat === undefined ? file : () => flat);
   } catch (e) {
     const code = /** @type {any} */ (e)?.code;
     if (code === 'VM_E_INDEX_BUSY') throw e;

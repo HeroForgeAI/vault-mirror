@@ -17,6 +17,7 @@ import { SCHEMA, TOOL_NAME, TOOL_VERSION } from '../version.js';
  * @property {[number, number]} log   byte offset and length of the note's record in passages.jsonl
  * @property {number} vec             position of the note's first vector in vectors.f32
  * @property {number} flagged
+ * @property {string} [file]         the vault-relative path as spelled on disk, kept only when it differs from the key
  *
  * @typedef {object} Manifest
  * @property {number} schema
@@ -32,6 +33,15 @@ import { SCHEMA, TOOL_NAME, TOOL_VERSION } from '../version.js';
  * @property {Record<string, NoteEntry>} notes
  * @property {Record<string, { reason: string, size: number, mtimeMs: number, racy?: boolean }>} leftOut
  */
+
+/**
+ * A note's vault-relative path as it is spelled on disk. The key is one spelling for every form of a
+ * name (NFC, ordinary spaces); a disk that tells the forms apart opens the file by this one only.
+ * @param {string} key @param {{ file?: string } | undefined} entry
+ */
+export function fileOf(key, entry) {
+  return entry?.file ?? key;
+}
 
 /** The live data folder's name, or null when nothing has been saved yet. @param {string} indexDir */
 export function currentDataName(indexDir) {

@@ -3,7 +3,7 @@
 // One call gives two lists: the passages closest by meaning, and a short separate list of passages
 // that hold the question's exact words.
 import path from 'node:path';
-import { loadManifest, withLiveData } from '../store/manifest.js';
+import { loadManifest, withLiveData, fileOf } from '../store/manifest.js';
 import { readRecord } from '../store/sidecar.js';
 import { liveOwner } from '../store/lock.js';
 import { ensureEngine } from '../engine/build.js';
@@ -132,7 +132,7 @@ export async function searchReady(ready, opts) {
     return {
       note: (notePath.split('/').pop() || '').replace(/\.md$/i, ''),
       section: p.trail.join(' > '),
-      path: path.join(opts.vaultPath, ...notePath.split('/')),
+      path: path.join(opts.vaultPath, ...fileOf(notePath, manifest.notes[notePath]).split('/')),
       vaultPath: notePath,
       line: p.line,
       link: buildLink({ vaultParam: opts.vaultParam, vaultPath: notePath, heads: p.heads || [], repeats: Boolean(p.rep), recovered: Boolean(p.recovered) }),

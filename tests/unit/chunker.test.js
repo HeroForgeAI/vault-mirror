@@ -181,6 +181,18 @@ test('case 17: CRLF, a byte-order mark, and line numbers that still refer to the
   assert.equal(bad.passages.length, 1, 'invalid UTF-8 is replaced, not fatal');
 });
 
+test('Windows line endings: the same passages, headings and line numbers as plain ones', () => {
+  const lf = ['---', 'tags: [work]', '---', '# Harbour log', '', 'The ferry rope was spliced on Tuesday and the bollard was painted.', '', '## Tides', '', 'High water came at six, and the mill pond filled by seven.', '', '- a list item about the seed tray', '- another about the rain gauge', '', '### Springs', '', words(260), '', '```js', 'const x = 1;', '```', '', '## Last part', '', 'The wood stove gets cleaned before the first frost.', ''].join('\n');
+  const a = run(lf); const b = run(lf.replace(/\n/g, '\r\n'));
+  assert.ok(a.passages.length >= 4);
+  assert.deepEqual(b.passages.map((p) => [p.n, p.line, p.trail, p.heads, p.text, p.embedText]), a.passages.map((p) => [p.n, p.line, p.trail, p.heads, p.text, p.embedText]));
+  assert.deepEqual([b.title, b.indexable], [a.title, a.indexable]);
+  assert.ok(!JSON.stringify(b.passages).includes('\\r'));
+  // A file that mixes the two, and one with no line ending at its end.
+  const mixed = run(lf.replace('\n## Tides\n', '\r\n## Tides\r\n').replace(/\n$/, ''));
+  assert.deepEqual(mixed.passages.map((p) => [p.line, p.trail, p.text]), a.passages.map((p) => [p.line, p.trail, p.text]));
+});
+
 test('case 18 and 24: the index rule fails closed, and ... does not end a properties block', () => {
   for (const f of ['Index false', 'Index False capital', 'Index key capital', 'Index quoted', 'Index no', 'Dots then index false']) {
     const r = chunk(fixture(`Edge/${f}.md`), `Edge/${f}.md`, SETTINGS);

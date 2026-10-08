@@ -1,5 +1,6 @@
 // @ts-check
 // Builds an Embedder from the model table. The rest of the tool talks to this interface only.
+import { setImmediate } from 'node:timers';
 import { modelEntry } from './models.js';
 import { modelFiles, readIdentity, loadCounter, isTested } from './model.js';
 import { createPool, createStallWatch } from './pool.js';
@@ -110,10 +111,14 @@ export function createEmbedder(opts) {
     }
     /** @type {NodeJS.Timeout | undefined} */
     let timer;
-    let shownMB = 0; let lastBytes = 0; let lastGrowth = Date.now(); let told = false;
+    let shownMB = 0; let lastBytes = 0; let lastGrowth = Date.now(); let told = false; let lastLook = Date.now();
     /** @type {Promise<never>} */
     const stalled = new Promise((_, reject) => {
       timer = setInterval(() => {
+        // A look that comes late means this process was not running (held up, or the laptop slept).
+        // That time says nothing about the network, so it is not counted as silence.
+        const late = Date.now() - lastLook - everyMs; lastLook = Date.now();
+        if (late > everyMs) lastGrowth += late;
         const quiet = Date.now() - lastGrowth;
         if (received > lastBytes) {
           lastBytes = received; lastGrowth = Date.now(); told = false;
@@ -211,7 +216,12 @@ export function createEmbedder(opts) {
       }
       if (!raw) {
         raw = [];
-        for (const t of leadTexts) raw.push((await lib.embed(t)).embedding);
+        for (const t of leadTexts) {
+          raw.push((await lib.embed(t)).embedding);
+          // One reader works on this thread and never waits. Let the system in after each passage,
+          // so a Ctrl+C or a timer is noticed now and not when the whole sync is over.
+          await new Promise((r) => setImmediate(r));
+        }
       }
       /** @type {(Float32Array | null)[]} */
       const out = [];

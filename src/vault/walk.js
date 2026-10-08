@@ -5,7 +5,7 @@ import { walk, stat } from './read-only-fs.js';
 import { readObsidianExcludes } from './obsidian-registry.js';
 
 /**
- * @typedef {{ key: string, abs: string, size: number, mtimeMs: number }} NoteFile
+ * @typedef {{ key: string, file: string, abs: string, size: number, mtimeMs: number }} NoteFile   `file` is the vault-relative path as spelled on disk, forward slashes
  * @typedef {{ key: string, reason: string, size: number, mtimeMs: number, abs: string | null }} LeftOutFile
  * @typedef {object} WalkResult
  * @property {NoteFile[]} notes          notes that belong in the index, as far as names can tell
@@ -103,7 +103,7 @@ export function walkVault(root, opts = {}) {
       const reason = forced || (excluded ? 'excluded' : obsidian.test(key) ? 'obsidian-excluded' : seen.has(key) ? 'duplicate-path' : null);
       if (reason) { result.leftOut.push({ key, reason, size: s.size, mtimeMs: s.mtimeMs, abs: e.abs }); continue; }
       seen.set(key, true);
-      result.notes.push({ key, abs: e.abs, size: s.size, mtimeMs: s.mtimeMs });
+      result.notes.push({ key, file: childRel.split(path.sep).join('/'), abs: e.abs, size: s.size, mtimeMs: s.mtimeMs });
     }
   }
   visit(root, '', null);

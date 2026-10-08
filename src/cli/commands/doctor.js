@@ -168,8 +168,8 @@ export async function doctorCommand(ui) {
     const tmp = path.join(home, `doctor-${process.pid}`);
     try {
       ensureDir(tmp);
-      const { engine } = await createFlat(path.join(tmp, 'check.db'), dims);
-      await flatSelfTest(engine, dims, path.join(tmp, 'check.db'));
+      const { engine, flat } = await createFlat(path.join(tmp, 'check.db'), dims);
+      await flatSelfTest(engine, dims, flat === undefined ? path.join(tmp, 'check.db') : () => flat);
       add('engine-is-flat', 'ok', 'A new index is created exact (flat): a replaced passage is found once, and a deleted one is gone.');
       const rows = Array.from({ length: 200 }, (_, i) => ({ id: `p${i}`, vector: fakeVector(dims, i + 1) }));
       const outlier = new Float32Array(dims); outlier[3] = -1; rows[77] = { id: 'p77', vector: outlier };
@@ -184,6 +184,7 @@ export async function doctorCommand(ui) {
       add('engine-round-trip', agree ? 'ok' : 'fail', agree ? 'The engine\'s top results equal an exact scan\'s.' : 'The engine\'s results differ from an exact scan.', agree ? null : 'Install vault-mirror again so the tested versions are used.');
     } catch (e) {
       const notFlat = /** @type {any} */ (e)?.code === 'VM_E_ENGINE_NOT_FLAT';
+      debug(`doctor engine check: ${String(/** @type {any} */ (e)?.code || '')} ${String(/** @type {any} */ (e)?.message).slice(0, 160)}`);
       add('engine-is-flat', 'fail', notFlat ? 'A new index did not pass the exact-index check (VM_E_ENGINE_NOT_FLAT). The built-in exact search will be used instead.' : 'A test index could not be created.', 'Install vault-mirror again so the tested versions are used.');
     } finally { try { remove(tmp); } catch { /* removed at next run */ } }
   }

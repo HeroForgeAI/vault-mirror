@@ -87,6 +87,46 @@ test('rename by hash: counted as renamed, and never toward the mass-removal stop
   safetyStops(plan, manifestOf(old), { vaultPath: '/v' });
 });
 
+test('a rename in letter case only is one rename: nothing is added twice and nothing is dropped', async () => {
+  // A disk that ignores letter case lists the file once, under its new name.
+  const files = { 'note.md': { text: body('Note') }, 'Keep.md': { text: body('Keep') } };
+  const had = manifestOf({ 'Note.md': { text: body('Note') }, 'Keep.md': { text: body('Keep') } });
+  const plan = await buildPlan({ ...fakeVault(files), manifest: had, chunk: chunkFn, now: NOW });
+  assert.deepEqual(plan.renamed, [{ from: 'Note.md', to: 'note.md' }]);
+  assert.deepEqual([plan.toEmbed.map((n) => n.key), plan.removed, plan.leaving, plan.unchanged, plan.eligible], [['note.md'], ['Note.md'], 0, 1, 2]);
+  // status, which reads no note, shows it as waiting and never as in step.
+  const shallow = await buildPlan({ ...fakeVault(files), manifest: had, chunk: chunkFn, now: NOW, shallow: true });
+  assert.deepEqual(shallow.pending, { new: 1, changed: 0, removed: 1 });
+});
+
+test('a note another program holds: skipped as unreadable, counted, and what the index has of it is kept', async () => {
+  const files = { 'Held.md': { text: body('Held, changed'), mtimeMs: 7 }, 'New and held.md': { text: body('New') }, 'B.md': { text: body('B') } };
+  const had = manifestOf({ 'Held.md': { text: body('Held') }, 'B.md': { text: body('B') } });
+  // What Windows answers for a file held without sharing, what a virus scanner can cause, and a note with no read permission.
+  for (const code of ['EBUSY', 'EPERM', 'EACCES']) {
+    const v = fakeVault(files);
+    const read = async (/** @type {string} */ abs) => { if (abs.includes('eld')) throw Object.assign(new Error(`${code}: resource busy or locked, open`), { code }); return v.read(abs); };
+    const plan = await buildPlan({ ...v, read, manifest: had, chunk: chunkFn, now: NOW });
+    assert.deepEqual(plan.skipped, [{ key: 'Held.md', reason: 'unreadable' }, { key: 'New and held.md', reason: 'unreadable' }], code);
+    assert.deepEqual([plan.toEmbed.length, plan.removed, plan.dropped, plan.leaving, plan.unchanged, plan.eligible], [0, [], [], 0, 1, 3], 'nothing is removed, and the held notes still count as notes that belong in the index');
+  }
+});
+
+test('a note at a path longer than 260 characters is walked and read', async () => {
+  const root = tmpDir('long');
+  const rel = [...Array.from({ length: 6 }, (_, i) => `A folder with a long name, number ${i + 1}, as an archive grows them`), 'The clock tower.md'];
+  const abs = path.join(root, ...rel);
+  assert.ok(abs.length > 300);
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  fs.writeFileSync(abs, body('clock tower'));
+  const walk = walkVault(root);
+  assert.deepEqual(walk.notes.map((n) => [n.key, n.abs]), [[rel.join('/'), abs]]);
+  assert.deepEqual([walk.unreadableDirs, walk.leftOut], [[], []]);
+  const { readBytes, stat } = await import('../../src/vault/read-only-fs.js');
+  const plan = await buildPlan({ walk, manifest: null, read: (p) => readBytes(p), stat: (p) => stat(p), chunk: chunkFn });
+  assert.deepEqual([plan.toEmbed.map((n) => n.key), plan.skipped], [[rel.join('/')], []]);
+});
+
 test('a read timeout becomes not-downloaded: passages kept, never removed; three stop the run', async () => {
   const files = { 'A.md': { text: body('A'), mtimeMs: 7 }, 'B.md': { text: body('B') } };
   const v = fakeVault(files);
@@ -288,6 +328,48 @@ test('two names with one key: the first by raw name is indexed, the other is lis
     assert.deepEqual(w.leftOut.map((l) => l.reason), ['duplicate-path']);
     assert.ok(w.notes[0].abs.endsWith('a b.md'));
   }
+});
+
+test('a name the key respells: the walk and the plan keep the name as the disk spells it', async () => {
+  // An accent stored as a letter plus a separate mark (the usual form for a name made on a Mac), and a no-break space.
+  const root = tmpDir('spell');
+  const NAMES = ['Cafe\u0301 notes.md', 'a\u00a0b.md', 'Plain.md'];
+  fs.mkdirSync(path.join(root, 'Re\u0301sume\u0301s'));
+  for (const name of NAMES) fs.writeFileSync(path.join(root, name), body(name));
+  fs.writeFileSync(path.join(root, 'Re\u0301sume\u0301s', 'One.md'), body('One'));
+  const onDisk = fs.readdirSync(root);
+  assert.ok(NAMES.every((n) => onDisk.includes(n)), 'this disk keeps the names as they were written');
+
+  const walk = walkVault(root);
+  const byKey = Object.fromEntries(walk.notes.map((n) => [n.key, n]));
+  assert.deepEqual(Object.keys(byKey).sort(), ['Café notes.md', 'Plain.md', 'Résumés/One.md', 'a b.md'].map((k) => k.normalize('NFC')).sort(), 'keys are one spelling for every form');
+  assert.equal(byKey['Café notes.md'.normalize('NFC')].file, 'Cafe\u0301 notes.md', 'the accent as the disk holds it');
+  assert.equal(byKey['a b.md'].file, 'a\u00a0b.md', 'the no-break space as the disk holds it');
+  assert.equal(byKey['Résumés/One.md'.normalize('NFC')].file, 'Re\u0301sume\u0301s/One.md', 'a folder name too, with forward slashes');
+  assert.equal(byKey['Plain.md'].file, 'Plain.md');
+  for (const n of walk.notes) assert.ok(fs.existsSync(path.join(root, ...n.file.split('/'))) && fs.readdirSync(path.dirname(n.abs)).includes(n.file.split('/').pop()), `${n.key} opens by its spelled name`);
+
+  const io = { read: (/** @type {string} */ abs) => fs.promises.readFile(abs), stat: (/** @type {string} */ abs) => { const s = fs.statSync(abs); return { size: s.size, mtimeMs: Math.floor(s.mtimeMs) }; }, chunk: chunkFn, now: Date.now() + 60_000 };
+  const first = await buildPlan({ walk, manifest: null, ...io });
+  assert.deepEqual(Object.fromEntries(first.toEmbed.map((n) => [n.key, n.file])), Object.fromEntries(walk.notes.map((n) => [n.key, n.file])), 'a note to read carries it');
+  assert.deepEqual(first.respelled, []);
+
+  // An index made before the name was kept: nothing is read again and nothing is waiting, the name is only noted.
+  const notes = Object.fromEntries(first.toEmbed.map((n) => [n.key, { sha256: n.sha256, size: n.size, mtimeMs: n.mtimeMs, racy: false, passages: n.passages.length, folderInPrefix: n.folderInPrefix, log: [0, 1], vec: 0, flagged: 0 }]));
+  const want = walk.notes.filter((n) => n.file !== n.key).map((n) => ({ key: n.key, file: n.file }));
+  assert.equal(want.length, 3);
+  for (const mode of [{ shallow: true }, {}, { verify: true }]) {
+    let reads = 0;
+    const p = await buildPlan({ walk, manifest: /** @type {any} */ ({ notes, leftOut: {} }), ...io, ...mode, read: (abs) => { reads++; return io.read(abs); } });
+    assert.deepEqual(p.respelled, want, `noted (${JSON.stringify(mode)})`);
+    assert.deepEqual([p.toEmbed.length, p.unchanged, p.pending, p.touched.length], [0, 4, { new: 0, changed: 0, removed: 0 }, 0], 'and that is all');
+    assert.equal(reads, mode.verify ? 4 : 0);
+  }
+  // Once the manifest holds it, there is nothing to note. A name later made plain on disk is noted again.
+  for (const w of want) notes[w.key].file = w.file;
+  assert.deepEqual((await buildPlan({ walk, manifest: /** @type {any} */ ({ notes, leftOut: {} }), ...io })).respelled, []);
+  notes['Plain.md'].file = 'Plaın.md';
+  assert.deepEqual((await buildPlan({ walk, manifest: /** @type {any} */ ({ notes, leftOut: {} }), ...io })).respelled, [{ key: 'Plain.md', file: 'Plain.md' }]);
 });
 
 test('a missing vault root is a safety stop', async () => {

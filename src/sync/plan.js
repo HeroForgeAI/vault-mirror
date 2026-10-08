@@ -3,10 +3,12 @@
 import crypto from 'node:crypto';
 import { noteKey } from '../log.js';
 import { VmError } from '../errors.js';
+import { fileOf } from '../store/manifest.js';
 
 /**
  * @typedef {object} PlannedNote
  * @property {string} key
+ * @property {string} file                 the vault-relative path as spelled on disk
  * @property {string} abs
  * @property {string} sha256
  * @property {number} size
@@ -22,6 +24,7 @@ import { VmError } from '../errors.js';
  * @property {number} eligible             notes that belong in the index
  * @property {number} unchanged
  * @property {{ key: string, size: number, mtimeMs: number, racy: boolean }[]} touched   same content, new date
+ * @property {{ key: string, file: string }[]} respelled   same note, and the manifest does not hold its name as the disk spells it
  * @property {PlannedNote[]} toEmbed
  * @property {string[]} removed            gone from disk (renamed-from paths included)
  * @property {{ key: string, reason: string }[]} dropped   in the index, now left out
@@ -60,7 +63,7 @@ export async function buildPlan(o) {
   const keptLeftOut = o.manifest ? o.manifest.leftOut : {};
   /** @type {Plan} */
   const plan = {
-    seen: o.walk.notes.length + o.walk.leftOut.length, eligible: 0, unchanged: 0, touched: [], toEmbed: [], removed: [], dropped: [], renamed: [],
+    seen: o.walk.notes.length + o.walk.leftOut.length, eligible: 0, unchanged: 0, touched: [], respelled: [], toEmbed: [], removed: [], dropped: [], renamed: [],
     leftOut: {}, leftOutList: [], leftOutKept: {}, skipped: [], otherFiles: o.walk.otherFiles,
     pending: { new: 0, changed: 0, removed: 0 }, pendingList: [], passagesToEmbed: 0, leaving: 0, warnings: [...o.walk.warnings], unmatchedExcludes: [...(o.walk.unmatchedExcludes || [])],
   };
@@ -84,10 +87,13 @@ export async function buildPlan(o) {
     onDisk.add(file.key);
     const fip = (names.get((file.key.split('/').pop() || '').toLowerCase()) || 0) > 1;
     const entry = notes[file.key];
+    const spelled = file.file ?? file.key;
+    // Bookkeeping only: the note is not read again, and it is not counted as waiting.
+    const respell = () => { if (entry && fileOf(file.key, entry) !== spelled) plan.respelled.push({ key: file.key, file: spelled }); };
     const hashed = noteKey(file.key);
     const left = keptLeftOut[hashed];
     if (!o.verify) {
-      if (entry && entry.size === file.size && entry.mtimeMs === file.mtimeMs && (o.shallow || !entry.racy) && entry.folderInPrefix === fip) { plan.unchanged++; plan.eligible++; continue; }
+      if (entry && entry.size === file.size && entry.mtimeMs === file.mtimeMs && (o.shallow || !entry.racy) && entry.folderInPrefix === fip) { respell(); plan.unchanged++; plan.eligible++; continue; }
       if (!entry && left && left.size === file.size && left.mtimeMs === file.mtimeMs && (o.shallow || !left.racy)) { leaveOut(file.key, left.reason); plan.leftOutKept[hashed] = left; continue; }
     }
     if (o.shallow && !o.verify) { plan.eligible++; pend(file.key, entry ? 'changed' : 'new'); continue; }
@@ -119,6 +125,7 @@ export async function buildPlan(o) {
     if (entry && entry.sha256 === digest && entry.folderInPrefix === fip) {
       plan.eligible++;
       if (entry.size !== current.size || entry.mtimeMs !== current.mtimeMs || entry.racy !== racy) plan.touched.push({ key: file.key, size: current.size, mtimeMs: current.mtimeMs, racy });
+      respell();
       plan.unchanged++;
       continue;
     }
@@ -132,7 +139,7 @@ export async function buildPlan(o) {
     }
     plan.eligible++;
     if (o.shallow) { pend(file.key, entry ? 'changed' : 'new'); continue; }
-    plan.toEmbed.push({ key: file.key, abs: file.abs, sha256: digest, size: current.size, mtimeMs: current.mtimeMs, racy, folderInPrefix: fip, title: chunked.title, passages: chunked.passages, kind: entry ? 'updated' : 'added' });
+    plan.toEmbed.push({ key: file.key, file: spelled, abs: file.abs, sha256: digest, size: current.size, mtimeMs: current.mtimeMs, racy, folderInPrefix: fip, title: chunked.title, passages: chunked.passages, kind: entry ? 'updated' : 'added' });
     plan.passagesToEmbed += chunked.passages.length;
   }
 

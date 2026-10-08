@@ -21,7 +21,7 @@ Open an issue and pick **A question, or help getting set up**. No question is to
 
 ## Reporting a bug
 
-Open an issue with the bug form. It asks for your version (`vault-mirror --version`), operating system, Node version, the command you ran, and what `status` and `doctor` print. Reports from Windows, Intel Macs and Linux are especially welcome: those platforms are not yet verified.
+Open an issue with the bug form. It asks for your version (`vault-mirror --version`), operating system, Node version, the command you ran, and what `status` and `doctor` print. Reports from Intel Macs, Windows on ARM and Linux on ARM are especially welcome: those are not yet verified. So are reports from large vaults on Windows and Linux, which are tested on CI with small vaults only.
 
 Security problems are different. They go through [SECURITY.md](SECURITY.md), which is private, and never into a public issue.
 
