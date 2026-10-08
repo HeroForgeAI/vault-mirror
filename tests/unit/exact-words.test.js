@@ -321,7 +321,7 @@ test('rebuild: a saved passage that cannot be read never throws; the table is re
   assert.equal(await remakeWords(s.indexDir, s), false);
 });
 
-test('the search path takes a ready embedder and a ready index, and returns both lists', async () => {
+test('the search path takes a ready embedder and a ready index, and returns both lists (kept apart)', async () => {
   const notes = {
     'Meaning.md': rec('Meaning', ['The passage the model likes best.', 'A second passage the model likes.']),
     'Other.md': rec('Other', ['Something else entirely.']),
@@ -338,9 +338,10 @@ test('the search path takes a ready embedder and a ready index, and returns both
   const engine = createExact(all, (i) => ids[i], DIMS);
   let embedded = 0;
   const embedder = /** @type {any} */ ({ embedQuery: async () => { embedded++; return Float32Array.from([1, 0, 0, 0]); } });
-  const opts = { count: 2, vaultPath: '/nowhere/v', vaultParam: 'v' };
+  const opts = { count: 2, vaultPath: '/nowhere/v', vaultParam: 'v', blend: false };
 
   const r = await searchReady({ embedder, engine, manifest: s.manifest, dataDir: s.dataDir, words }, { ...opts, queries: ['where is the "heliotrope accordion"'] });
+  assert.equal(r.blended, false);
   assert.deepEqual(r.results.map((x) => x.vaultPath), ['Meaning.md', 'Other.md'], 'the list by meaning misses it');
   assert.deepEqual(r.exactWords.map((x) => [x.rank, x.passage, x.words]), [[1, 'Exact.md#1', ['heliotrope', 'accordion']]], 'the exact-words list finds it');
   const x = r.exactWords[0];
@@ -387,4 +388,69 @@ test('a result path is the name as the disk spells it; the id and the link keep 
   fs.mkdirSync(path.dirname(byPath[key].path), { recursive: true }); fs.writeFileSync(path.join(vault, ...file.split('/')), 'x');
   assert.ok(fs.readdirSync(path.dirname(byPath[key].path)).includes(path.basename(byPath[key].path)), 'the name is one the folder really lists');
   if (byPath['Plain.md']) assert.equal(byPath['Plain.md'].path, path.join(vault, 'Plain.md'), 'a name the key does not respell is built from the key, as before');
+});
+
+// --- the blended list ---
+
+/** A small index with made-up vectors, an exact engine over them and a fake embedder that returns `question`. */
+function blendIndex() {
+  const notes = {
+    'Best.md': rec('Best', ['The passage the model likes best.', 'A second passage the model likes.']),
+    'Near.md': rec('Near', ['Something the model likes nearly as much.']),
+    'Ledger.md': rec('Ledger', ['Close in meaning but not the closest.', 'The kestrel ledger is on the top shelf.']),
+    'Shelf.md': rec('Shelf', ['Only the shelf is mentioned here.']),
+  };
+  /** @type {Record<string, number[][]>} */
+  const vec = { 'Best.md': [[1, 0, 0, 0], [0.9, 0.1, 0, 0]], 'Near.md': [[0.9, 0.436, 0, 0]], 'Ledger.md': [[0.8, 0.6, 0, 0], [0.75, 0, 0.661, 0]], 'Shelf.md': [[0.1, 0, 0, 0.995]] };
+  const s = indexOf(notes, (key, n) => vec[key][n]);
+  const words = wordsFor(s.indexDir, s, {}).table;
+  const all = new Float32Array(s.manifest.sidecar.vectors * DIMS);
+  /** @type {string[]} */
+  const ids = [];
+  for (const [key, e] of Object.entries(s.manifest.notes)) for (let n = 0; n < e.passages; n++) { all.set(vec[key][n], (e.vec + n) * DIMS); ids[e.vec + n] = passageId(key, n); }
+  const embedder = /** @type {any} */ ({ embedQuery: async () => Float32Array.from([1, 0, 0, 0]) });
+  return { s, ready: { embedder, engine: createExact(all, (i) => ids[i], DIMS), manifest: s.manifest, dataDir: s.dataDir, words } };
+}
+/** Every file under a folder with its size and modified time. @param {string} dir @returns {string[]} */
+const filesOf = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => { const a = path.join(dir, e.name); if (e.isDirectory()) return filesOf(a); const st = fs.statSync(a); return [`${a} ${st.size} ${st.mtimeMs}`]; });
+
+test('the blended list: a passage that holds the exact words moves up, and says why', async () => {
+  const { s, ready } = blendIndex();
+  const opts = { count: 3, vaultPath: '/nowhere/v', vaultParam: 'v' };
+  const before = filesOf(s.home);
+  const r = await searchReady(ready, { ...opts, queries: ['kestrel ledger'] });
+  assert.equal(r.blended, true);
+  assert.deepEqual(r.results.map((x) => [x.rank, x.passage]), [[1, 'Best.md#0'], [2, 'Ledger.md#1'], [3, 'Near.md#0']], 'Ledger.md moves from third to second, by the passage that holds the words');
+  const [best, ledger, near] = /** @type {any[]} */ (r.results);
+  assert.deepEqual([ledger.score, ledger.wordsBonus, ledger.blended, ledger.words], [0.75, 0.2, 0.95, ['kestrel', 'ledger']], 'score stays the match by meaning of the passage shown; the bonus is its own field');
+  assert.deepEqual([best.score, best.wordsBonus, best.blended, best.words], [1, 0, 1, []]);
+  assert.deepEqual([near.score, near.wordsBonus, near.blended], [0.9, 0, 0.9]);
+  assert.ok(ledger.path.endsWith('Ledger.md') && ledger.line === 2 && ledger.note === 'Ledger' && ledger.link && ledger.text.includes('kestrel'), 'a moved result still carries its note, line, link and passage');
+  assert.deepEqual(r.exactWords, [], 'the passage is already in the list, so the exact-words list is left out');
+  const again = await searchReady(ready, { ...opts, queries: ['kestrel ledger'] });
+  assert.deepEqual([again.results, again.exactWords], [r.results, r.exactWords], 'the same question gives the same list');
+  assert.deepEqual(filesOf(s.home), before, 'a search writes nothing');
+
+  const apart = await searchReady(ready, { ...opts, queries: ['kestrel ledger'], blend: false });
+  assert.deepEqual(apart.results.map((x) => x.passage), ['Best.md#0', 'Near.md#0', 'Ledger.md#0'], 'kept apart, the first list is by meaning alone');
+  assert.deepEqual(apart.exactWords.map((x) => x.passage), ['Ledger.md#1']);
+  assert.ok(!('wordsBonus' in apart.results[0]) && !('blended' in apart.results[0]) && !('words' in apart.results[0]), 'and its rows have the fields of 0.1.0, no more');
+  const alone = await searchReady({ ...ready, words: null }, { ...opts, queries: ['kestrel ledger'] });
+  assert.equal(alone.blended, false);
+  assert.deepEqual(alone.results, apart.results, 'without the exact words there is nothing to blend');
+});
+
+test('the blended list: half of the words or fewer moves nothing; a note is listed once', async () => {
+  const { ready } = blendIndex();
+  const opts = { count: 4, vaultPath: '/nowhere/v', vaultParam: 'v' };
+  // "shelf" is in two notes and is one of three words here: no passage holds more than half of the question.
+  const weak = await searchReady(ready, { ...opts, queries: ['shelf brackets installation'] });
+  const apart = await searchReady(ready, { ...opts, queries: ['shelf brackets installation'], blend: false });
+  assert.deepEqual(weak.results.map((x) => [x.passage, x.score]), apart.results.map((x) => [x.passage, x.score]), 'the order by meaning stands');
+  assert.ok(weak.results.every((x) => /** @type {any} */ (x).wordsBonus === 0));
+  assert.deepEqual(weak.exactWords.map((x) => x.passage), apart.exactWords.map((x) => x.passage), 'and the exact-words list is the same either way');
+  // Two wordings both find Ledger.md: it is still one row.
+  const twice = await searchReady(ready, { ...opts, queries: ['kestrel ledger', 'ledger on the top shelf'] });
+  assert.equal(twice.results.filter((x) => x.vaultPath === 'Ledger.md').length, 1);
+  assert.deepEqual(twice.results.map((x) => x.rank), [1, 2, 3, 4]);
 });

@@ -622,8 +622,9 @@ await step(21, 'search quality on the question list', () => {
         if (wordings === 3 && !q.phrasings) { row.of--; continue; }
         const wanted = [q.expected, ...(q.alternates || [])];
         const words = wordings === 1 ? [pick(q)] : [pick(q), ...q.phrasings];
-        const wide = vm(['search', ...words, '--no-sync', '--json', '-k', '8']).json;           // what a person's AI gets by default
-        const narrow = vm(['search', ...words, '--no-sync', '--json', '-k', '3']).json;         // three by meaning plus the exact-words list
+        // The two lists kept apart, as in 0.1.0, so these counts stay comparable. tests/bench/ranking.mjs scores the blended list.
+        const wide = vm(['search', ...words, '--no-sync', '--json', '-k', '8', '--no-blend']).json;
+        const narrow = vm(['search', ...words, '--no-sync', '--json', '-k', '3', '--no-blend']).json;         // three by meaning plus the exact-words list
         const alone = vm(['search', ...words, '--no-sync', '--json', '-k', '8', '--no-exact-words']).json;
         if (JSON.stringify(alone.results) !== JSON.stringify(wide.results) || alone.exactWords.length) fused++;
         if (found(wide.results.slice(0, 3), wanted)) row.top3++;
@@ -794,8 +795,8 @@ await step('X1', 'an exact phrase the list by meaning misses is found by the exa
   fs.writeFileSync(path.join(VAULT, 'Records', 'Bird log.md'), '# Bird log\n\n## March\n\nA kestrel hovered over the lane all morning. The feed ledger for the hens was brought up to date in the afternoon.\n');
   accept();
   const QUESTION = 'how long should the soup stock simmer, and what does the "kestrel ledger" say';
-  const s = vm(['search', QUESTION, '--json', '-k', '2']);
-  eq(s.status, 0, 'exit'); eq(s.json.inStep, true, 'the quick sync indexed the new notes');
+  const s = vm(['search', QUESTION, '--json', '-k', '2', '--no-blend']); // the two lists kept apart
+  eq(s.status, 0, 'exit'); eq(s.json.inStep, true, 'the quick sync indexed the new notes'); eq(s.json.blended, false, 'kept apart');
   assert(!s.json.results.some((/** @type {any} */ x) => x.vaultPath === 'Records/Hive records.md'), `the list by meaning misses the note that says the phrase: ${s.json.results.map((/** @type {any} */ x) => x.vaultPath).join(', ')}`);
   assert(Array.isArray(s.json.exactWords), 'the exact-words list is its own array');
   const hit = s.json.exactWords[0] || {};
@@ -813,13 +814,20 @@ await step('X1', 'an exact phrase the list by meaning misses is found by the exa
   const plain = vm(['search', 'kestrel ledger', '--json', '--no-sync', '-k', '2']);
   const both = [...plain.json.results, ...plain.json.exactWords].map((/** @type {any} */ x) => x.vaultPath);
   assert(both.includes('Records/Hive records.md') && both.includes('Records/Bird log.md'), 'without the quotes, both notes are found by one list or the other');
+  // Blended, the default: the note that holds both words is in the one list, and the row says which words moved it.
+  eq(plain.json.blended, true, 'blended by default');
+  const moved = plain.json.results.find((/** @type {any} */ x) => x.vaultPath === 'Records/Hive records.md');
+  assert(moved && moved.wordsBonus > 0 && moved.words.includes('kestrel') && moved.words.includes('ledger'), `the blended list holds the note, with its bonus and its words: ${JSON.stringify(plain.json.results.map((/** @type {any} */ x) => [x.vaultPath, x.score, x.wordsBonus]))}`);
+  assert(plain.json.results.every((/** @type {any} */ x, /** @type {number} */ i) => x.rank === i + 1 && x.score >= 0 && x.score <= 1 && Math.abs(x.blended - (x.score + x.wordsBonus)) < 0.0015 && (i === 0 || plain.json.results[i - 1].blended >= x.blended)), 'score is still the match by meaning; the order is by score plus bonus');
+  eq(JSON.stringify(vm(['search', 'kestrel ledger', '--json', '--no-sync', '-k', '2']).json.results), JSON.stringify(plain.json.results), 'and the same search gives the same list');
+  assert(/match \d\.\d\d {2}\+ exact words: kestrel, ledger\n/.test(vm(['search', 'kestrel ledger', '--no-sync', '-k', '2']).stdout), 'human output names the words on the result line');
   const off = vm(['search', QUESTION, '--json', '--no-sync', '-k', '2', '--no-exact-words']);
-  eq(JSON.stringify(off.json.results), JSON.stringify(s.json.results), 'the list by meaning is the same with the exact-words list turned off: the two are never mixed');
+  eq(JSON.stringify(off.json.results), JSON.stringify(s.json.results), 'with --no-blend the list by meaning is the same as with the exact words turned off');
   eq(off.json.exactWords.length, 0, 'and the list is empty');
-  const wordings = vm(['search', 'how long should the soup stock simmer', 'what is in the "kestrel ledger"', 'where is the tin box', '--json', '--no-sync', '-k', '2']);
+  const wordings = vm(['search', 'how long should the soup stock simmer', 'what is in the "kestrel ledger"', 'where is the tin box', '--json', '--no-sync', '-k', '2', '--no-blend']);
   assert(wordings.json.exactWords.some((/** @type {any} */ x) => x.vaultPath === 'Records/Hive records.md'), 'with several wordings, each one contributes to the exact-words list');
 
-  const human = vm(['search', QUESTION, '--no-sync', '-k', '2']);
+  const human = vm(['search', QUESTION, '--no-sync', '-k', '2', '--no-blend']);
   assert(/\nAlso contains these exact words:\n- {2}Hive records {2}› {2}Where things are\s+words: .*kestrel, ledger/.test(human.stdout), `human output: ${human.stdout.slice(-400)}`);
   assert(!/hybrid/i.test(human.stdout + human.stderr), 'never that word');
   const repeat = vm(['search', HIVE_SENTENCE, '--no-sync', '-k', '20']);

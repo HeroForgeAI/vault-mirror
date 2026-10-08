@@ -6,6 +6,17 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ## [Unreleased]
 
+### Added
+
+- `search --no-blend` and the setting `vault.blend` (default `true`). With the blend off, a search returns the list by meaning and the exact-words list apart, exactly as 0.1.0 did.
+- JSON: `blended` (true or false) on the search result. When it is true, each entry of `results` also has `words` (the question's exact words the passage holds, empty when it was not moved), `wordsBonus` (0 to 0.2) and `blended` (`score` plus `wordsBonus`, the number the list is ordered by). No field was renamed or removed.
+- `tests/bench/ranking.mjs`, two labelled question sets for the practice vault, and `tests/bench/second-pass.mjs`. Results in `docs/BENCHMARKS.md`.
+
+### Changed
+
+- **`search` returns one ranked list by default.** A passage that holds more than half of the question's distinctive words is moved up: it gains up to 0.20 on its match by meaning, and its line says which words (`match 0.68  + exact words: feed, tomatoes`). `score` is still the match by meaning; `results` is now ordered by `score` plus the bonus, so it is no longer always in descending order of `score`. The exact-words list still follows, for passages the first list did not show. On 260 labelled questions the blended list was at least as good as the two lists on every kind of question and better overall; a search takes 1 to 4 ms longer. No note is re-read and no index is rebuilt.
+- Not added: a second pass with another model (reranking). Three small models were measured; each made the list worse on these questions and needs a second runtime of 145 to 287 MB.
+
 ## [0.1.1] - 2026-10-08
 
 vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still only ever read. Upgrading reads no note again: nothing changed in how notes are cut or read, and an index made by 0.1.0 is kept.

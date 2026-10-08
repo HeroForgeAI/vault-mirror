@@ -10,6 +10,7 @@ You can leave these alone. `init` writes one file, `~/.vault-mirror/config.json`
 | `vault.minWords` | `3` | A section with fewer words makes no passage |
 | `vault.workers` | `"auto"` | Readers for a large sync. Never more than 4 unless you set a number |
 | `vault.resultCount` | `8` | Notes returned by a search (`-k` overrides it) |
+| `vault.blend` | `true` | One ranked list: a passage that holds most of the question's exact words is moved up. `false` keeps the list by meaning and the exact-words list apart, as 0.1.0 did. `search --no-blend` does the same for one search |
 | `vault.screen` | `"report"` | Flags passages that look like they hold a password or key, and masks them in results. `status --screen` lists them |
 
 `VAULT_MIRROR_HOME` moves the index folder. `RUVECTOR_CACHE_DIR` moves the model cache (ruvector's own setting). All commands and flags: `vault-mirror --help`.

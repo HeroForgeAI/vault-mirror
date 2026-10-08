@@ -8,10 +8,11 @@ Each of these is good at what it is built for. The other columns come from each 
 | Never writes a note | ✓ | – | ✗ (two-way by design) | – | – |
 | A deleted note leaves the index | ✓ | – | – | – | – |
 | One command proves index = vault | ✓ | – | – | – | – |
-| Blends keyword and meaning, then reranks | ✗ | ✓ | ✓ (reranking is optional) | – (a rerank stage is a Pro option) | – |
+| One ranked list that blends keyword and meaning | ✓ (after 0.1.0, not yet released) | ✓ | ✓ | – | – |
+| Then reranks with a second model | ✗ (measured, not built in) | ✓ | ✓ (optional, off by default) | – (a rerank stage is a Pro option) | – |
 | MCP server | ✗ | ✓ | ✓ | – | ✓ |
 
-If ranking quality is what you need, use qmd: it is the stronger search tool. vault-mirror keeps two lists side by side and puts its effort into the read-only and 1:1 guarantees.
+If ranking quality is what you need, use qmd: it is the stronger search tool. It rewrites the question, blends keyword and meaning with rank fusion, and reranks the top 30 with a model of about 640 MB. vault-mirror blends the two lists with a plain rule and no second model: a passage that holds most of the question's exact words gets a bonus on its match by meaning. Three small reranking models were measured and made the list worse on our questions, so none is built in ([docs/BENCHMARKS.md](BENCHMARKS.md#the-blended-list)). The two tools have not been measured against each other. vault-mirror puts its effort into the read-only and 1:1 guarantees.
 
 vault-mirror is also not a privacy wall (passages a search returns go to your AI's service), not a background service (no daemon, no file watcher), not a backup, and not compliance tooling. Your AI can still edit notes if you ask it to. That is your AI, not this tool.
 

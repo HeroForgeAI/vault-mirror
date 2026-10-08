@@ -42,7 +42,7 @@ The first research brief came from a 2-core cloud sandbox. Everything below was 
 
 **Not measured by anything yet.** The build measures these and writes them to `docs/BENCHMARKS.md`; nothing in the docs may quote them before that: the passage count this tool's own chunker gives the reference vault (plan for tens of thousands); the flat index with real vectors (every store test so far used synthetic ones); the end-to-end rate through this tool's own pipeline; first-sync time on an ordinary laptop; crash safety of our sidecar (`kill -9` was only tried on ruvector's file); pool behaviour after a timeout; installing from a git tag; an interrupted or poisoned model download seen end to end; any machine other than the build machine (Intel Mac, Windows, Node 20 and 22); whether an `obsidian://` link opens when clicked; how often the index finds the right note for a question asked in other words (one small test missed about one in three, which is why the agent rule keeps file search as the fallback).
 
-**Claims this project never makes.** "Instant", "finds what search can't", any "N times less reading" figure, "hybrid search", "reranking", "HIPAA compliant". There is no command that estimates a saving, and no reading multiplier is printed by the tool or quoted in its docs.
+**Claims this project never makes.** "Instant", "finds what search can't", any "N times less reading" figure, "hybrid search", "reranking", "HIPAA compliant". (Since the blended list: the tool does blend exact words into the ranking by meaning, and says so in those plain words. It still has no reranking model, and still does not use the other name.) There is no command that estimates a saving, and no reading multiplier is printed by the tool or quoted in its docs.
 
 **Pending studies.** Which embedding model, and embedded ruvector or ruvector-postgres. The design isolates both: model identity lives in the manifest and a change triggers one re-read; the embedder and the storage engine each sit behind one small interface (section 9).
 
@@ -147,7 +147,8 @@ One current vault. `init` on another folder switches to it and says so; each vau
     "workers": "auto",
     "obsidianExcludes": true,
     "searchAutoSyncMaxPassages": 20,
-    "resultCount": 8
+    "resultCount": 8,
+    "blend": true
   },
   "embedding": { "model": "all-MiniLM-L6-v2" }
 }
@@ -164,6 +165,7 @@ One current vault. `init` on another folder switches to it and says so; each vau
 | `embedding.model` | `"all-MiniLM-L6-v2"` | The working default. It is a key into the model table in `src/embed/models.js` (section 9), which is where a different model plugs in. Changing it re-reads every note once |
 | `searchAutoSyncMaxPassages` | 20 | A search syncs first only when the waiting work is this small (seconds on a slow laptop) |
 | `resultCount` | 8 | Notes returned by a search |
+| `blend` | `true` | One ranked list, with passages that hold the question's exact words moved up. `false` keeps the two lists apart |
 
 Precedence: command flag, then `VAULT_MIRROR_HOME`, then `config.json`, then defaults. `~` is expanded. The file is written atomically (temp file, then rename).
 
@@ -260,7 +262,7 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
 
 ### `search "<question>"`
 
-- Flags: `-k, --count <n>` (default 8), `--no-sync`, `--no-exact-words`.
+- Flags: `-k, --count <n>` (default 8), `--no-sync`, `--no-blend`, `--no-exact-words`.
 - Flow: guards; if no sync has ever completed and nothing is saved, stop with `Nothing is indexed yet. Run vault-mirror sync first.` (exit 2, `VM_E_NOT_SYNCED`); a quick sync first unless `--no-sync`, another sync is running, or the waiting work exceeds `searchAutoSyncMaxPassages` (then a one-line notice and it searches what is there); bring the engine in step with the manifest (section 8); embed the question; fetch `max(count × 8, 50)` passages; drop any hit the manifest does not know; keep the best passage per note; if fewer than `count` notes remain and the fetch came back full, fetch four times as many once and repeat; print.
 - Because the manifest is saved after every group of notes, a search during a long first sync covers everything saved so far and says so in one notice.
 - Result shape (the public contract):
@@ -284,7 +286,8 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
 
 | Field | Rule |
 | --- | --- |
-| `score` | Similarity, higher is better: `1 - distance`, clamped to 0..1 (cosine distance can reach 2), rounded to 3 places. Converted in one place |
+| `score` | Similarity, higher is better: `1 - distance`, clamped to 0..1 (cosine distance can reach 2), rounded to 3 places. Converted in one place. Always the match by meaning of the passage shown, blended or not |
+| `words`, `wordsBonus`, `blended` | Only when the search is blended (see "The blended list" below). `words`: the question's exact words this passage holds, empty when it gained nothing. `wordsBonus`: 0 to 0.2. `blended`: `score` plus `wordsBonus`, the number `results` is ordered by |
 | `note` | The file name without `.md` |
 | `section` | The heading trail under the title, joined with ` > `; empty string when the passage sits before the first heading |
 | `path` | Absolute path on disk, the thing an agent opens, spelled as the disk spells it. `vaultPath` is vault-relative, forward slashes, NFC |
@@ -294,7 +297,7 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
 | `morePassages` | How many other passages of this note also matched |
 | `flags` | `"possible-secret"` or `"possible-instruction-text"` from the screen |
 
-- JSON: `{ query, queries, results: [...], exactWords: [...], searched: { notes, passages }, inStep, syncNotice: null | "…", tookMs, timings }`. `exactWords` is its own array (see "The exact-words list" below) and is empty when there is nothing new to show. With `--no-sync` the vault is not looked at, but the index records whether its last sync ran to the end; after a stopped or killed sync `syncNotice` is `The last sync did not finish. This search covers what is indexed so far. Next: vault-mirror sync --detach`.
+- JSON: `{ query, queries, results: [...], exactWords: [...], blended: true | false, searched: { notes, passages }, inStep, syncNotice: null | "…", tookMs, timings }`. `exactWords` is its own array (see "The exact-words list" below) and is empty when there is nothing new to show. With `--no-sync` the vault is not looked at, but the index records whether its last sync ran to the end; after a stopped or killed sync `syncNotice` is `The last sync did not finish. This search covers what is indexed so far. Next: vault-mirror sync --detach`.
 - Human output, per result:
 
 ```text
@@ -309,13 +312,13 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
 
 #### The exact-words list
 
-One search call gives two lists. The first is the list above: passages closest **by meaning**. The second is short and separate: passages that hold the question's **exact words**. The reading model finds a passage that says the same thing in other words; it can miss a passage that holds the very word asked for (a name, a code, a rare term). The second list covers that, with no model involved.
+One search call ranks passages two ways. The first is the list above: passages closest **by meaning**. The second is short: passages that hold the question's **exact words**. By default the two are blended into one ranked list (next section) and the second list shows only what that list left out; with `--no-blend` they are two separate lists, as described here. The reading model finds a passage that says the same thing in other words; it can miss a passage that holds the very word asked for (a name, a code, a rare term). The second list covers that, with no model involved.
 
 - **What is ranked.** Every passage in the tool's own passage store, scored with BM25 (`k1` 1.2, `b` 0.75, `idf = ln(1 + (N - df + 0.5) / (df + 0.5))`) on the question's distinctive words. A passage's words are its note title, its heading trail and its text.
 - **One set of token rules for question and passage** (`src/words/tokens.js`): lower-case; a token is a run of letters and digits; anything else ends it (`garden's` gives `garden` and `s`); no stemming, because these are exact words; runs longer than 64 characters are not words. **Distinctive** means not on the stop list (about 130 common English words) and not a single letter.
 - **A quoted phrase counts as a phrase.** Text between a pair of double quotes inside a wording (`search 'when is the "last frost" here'`) must appear in the passage as neighbouring words in that order, stop words included, within one part (a heading and the text under it are separate parts). A wording with phrases only lists passages that hold every one of its phrases. A phrase made only of stop words is ignored.
 - **Several wordings.** Each wording is ranked on its own and gives up to 3 passages, one per note. The lists are merged with every wording's best first, then every wording's second, and so on; a note found by two wordings is listed once. So each wording contributes to both lists.
-- **Never fused.** The two lists are never merged into one ranking and the exact-words score never changes the order of the list by meaning (one test showed that fusing lowers recall on reworded questions). `--no-exact-words` leaves the second list out; the first list is byte-for-byte the same either way, and the acceptance script checks that.
+- **Kept apart with `--no-blend`.** The two lists are then never merged and the exact-words score never changes the order of the list by meaning. `--no-exact-words` leaves the second list out and turns the blend off; with `--no-blend` the first list is byte-for-byte the same either way, and the acceptance script checks that. The BM25 score itself is never added to a match by meaning, blended or not: the blend uses a share of words (next section).
 - **Left out when it only repeats.** A passage already shown in the list by meaning is removed from the exact-words list, and at most 3 remain. When none remain the list is left out: no heading in human output, an empty array in JSON.
 - **Result shape.** The fields of a result by meaning, without `morePassages`, plus `words` (the question's distinctive words this passage really holds, read back from the passage itself). `rank` counts within this list. `score` is the BM25 score rounded to 2 places; it is on another scale than the score by meaning and the two are not comparable.
 - **Human output**, after the list by meaning and one empty line:
@@ -332,9 +335,22 @@ Also contains these exact words:
 - **Wording.** User-facing words are "by meaning" and "exact words". The tool, its help, its docs and its tests never use the name this project never uses for it (section 1, "Claims this project never makes").
 - `timings` gains `wordsMs`: loading the table, ranking, and reading the passages back.
 
+#### The blended list
+
+The default since the release after 0.1.0. Decided from measurements on 260 labelled questions (`docs/BENCHMARKS.md`, "The blended list"): plain rank fusion (1 / (60 + place) from each list) was tried first and put the right note of a reworded question below notes that merely appear in both lists, which is the test the line above used to cite; the rule below was at least as good as two lists on every kind of question and better overall.
+
+- **Share.** For each wording, a passage's share is the summed weight of the wording's distinctive words it really holds (read back from the passage, as for `words`), over the summed weight of all the wording's distinctive words. A word's weight is the BM25 `idf` above. It counts presence, not frequency. 0..1.
+- **Bonus.** `0` when the share is 0.5 or less; otherwise `0.2 × (share − 0.5) / 0.5`. Then multiplied by `min(1, 3 / c)`, where `c` is the number of notes whose best share is at least this passage's share: words that many notes hold equally move nothing much.
+- **Who is looked at.** Each wording's 20 best exact-word passages, one per note. The match by meaning of such a passage is the cosine of its saved vector with the question (the highest over the wordings), on the same 0..1 scale; when it is the note's best passage by meaning, the engine's own number is used.
+- **Order.** `score + bonus`, then `score`, then path. One row per note: the passage with the highest `score + bonus`. The list is cut at `count`. The same index and question always give the same list.
+- **What stays the same.** `score` is the match by meaning. Rows carry every field they had. The exact-words list follows, built exactly as before, without the passages the blended list shows. A blended search reads the index only; nothing is written.
+- **Human output.** A row that gained a bonus ends with the words: `match 0.68  + exact words: feed, tomatoes`.
+- **Off.** `--no-blend`, or `"blend": false` under `vault` in `config.json`. `--no-exact-words` also turns it off.
+- **No second model.** A pass that scores the top passages again with a model that reads question and passage together was measured with three small models and made the list worse; ruvector's bundled runner cannot run such a model, so it would also need a second runtime. Not built.
+
 #### The search path is one function
 
-`searchReady(ready, opts)` in `src/search/search.js` takes a **ready embedder** and a **ready index** (`{ embedder, engine, manifest, dataDir, words }`) and returns `{ results, exactWords, timings }`. It loads nothing and writes nothing. `runSearch` does the loading around it (the quick sync, the engine probe, the model, the exact-words table, the retry when a tidy rewrite replaces the data folder) and calls it once. A process that keeps the model and the index in memory can call the same function again and again: that is the door warm mode will use.
+`searchReady(ready, opts)` in `src/search/search.js` takes a **ready embedder** and a **ready index** (`{ embedder, engine, manifest, dataDir, words }`) and returns `{ results, exactWords, blended, timings }`. It loads nothing and writes nothing. `runSearch` does the loading around it (the quick sync, the engine probe, the model, the exact-words table, the retry when a tidy rewrite replaces the data folder) and calls it once. A process that keeps the model and the index in memory can call the same function again and again: that is the door warm mode will use.
 
 ### `status`
 

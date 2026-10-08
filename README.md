@@ -162,7 +162,7 @@ The picture is drawn from real output on 15 invented notes: the vault in [`tests
 
 The match number says how close the paragraph is to the question. A higher number is closer. It is not a percentage of how sure anything is.
 
-One call gives two lists. The first is **by meaning**, as above. The second, shown only when it adds something, is **exact words**: paragraphs that hold the very words asked for, which is what you want for a name, a code or a rare term. The two lists are never blended into one ranking.
+One call gives one ranked list. It starts from the match **by meaning**, as above. A paragraph that also holds most of the **exact words** you asked for (a name, a code, a rare term) is moved up, and its line says which words. The match number is still the match by meaning; the order is that number plus up to 0.20 for the words. A short second list, shown only when it adds something, holds exact-word paragraphs the first list left out. `--no-blend` keeps the two lists apart, as 0.1.0 did. It was measured before it became the default: [docs/BENCHMARKS.md](docs/BENCHMARKS.md#the-blended-list).
 
 <details>
 <summary><b>Prefer to type it yourself?</b></summary>
@@ -179,13 +179,13 @@ $ vault-mirror search "why is the fruit going black underneath" -k 1
    Blossom end rot shows up as a dark patch on the base of the fruit. It comes from uneven watering, not disease.
 ```
 
-And one that shows both lists:
+And one where the exact words change the order. By meaning alone the planting paragraph is a little closer (0.70 against 0.68). The feeding paragraph holds both words of the question, so it goes first, and its line says so:
 
 ```text
 $ vault-mirror search "when should I feed the tomatoes" -k 2
-1. Garden plan  ›  Spring > When to plant                    match 0.70
+1. Tomatoes  ›  Feeding                                      match 0.68  + exact words: feed, tomatoes
    ...
-2. Tomatoes  ›  Feeding                                      match 0.68
+2. Garden plan  ›  Spring > When to plant                    match 0.70
    ...
 
 Also contains these exact words:
@@ -327,7 +327,7 @@ The picture at the top is the second case. In those 15 invented notes, a file se
 
 It does not make your AI more correct. What changes as a vault grows is how much your AI reads and how long you wait. We publish no figure for reading saved; measure it on your own vault.
 
-**If ranking quality is what you need, use [qmd](https://github.com/tobi/qmd): it is the stronger search tool.** vault-mirror keeps two lists side by side and puts its effort into the read-only and 1:1 guarantees. How it compares with qmd, basic-memory, Smart Connections and obsidian-brain, feature by feature: [docs/COMPARISON.md](docs/COMPARISON.md).
+**If ranking quality is what you need, use [qmd](https://github.com/tobi/qmd): it is the stronger search tool.** It rewrites your question, blends keyword and meaning, and then scores the top results again with a second model. vault-mirror blends the two with no second model: we measured three small ones and they made the list worse on our questions ([the numbers](docs/BENCHMARKS.md#a-second-pass-with-another-model-measured-not-built-in)). We have not measured vault-mirror against qmd. Its effort goes into the read-only and 1:1 guarantees. How it compares with qmd, basic-memory, Smart Connections and obsidian-brain, feature by feature: [docs/COMPARISON.md](docs/COMPARISON.md).
 
 It is also not a privacy wall (passages a search returns go to your AI's service), not a background service (no daemon, no file watcher), not a backup, and not compliance tooling. Your AI can still edit notes if you ask it to. That is your AI, not this tool.
 

@@ -5,7 +5,7 @@ import { VmError } from '../../errors.js';
 import { num } from '../output.js';
 
 /**
- * @param {{ queries: string[], count?: string, noSync?: boolean, noExactWords?: boolean }} args
+ * @param {{ queries: string[], count?: string, noSync?: boolean, noExactWords?: boolean, noBlend?: boolean }} args
  * @param {import('../output.js').Ui} ui
  */
 export async function searchCommand(args, ui) {
@@ -14,7 +14,7 @@ export async function searchCommand(args, ui) {
   const count = args.count == null ? undefined : Number(args.count);
   if (count != null && (!Number.isInteger(count) || count < 1)) throw new VmError('VM_E_USAGE', { detail: '--count takes a whole number, for example --count 5.' });
   const ctx = loadContext({ needVault: true });
-  const r = await runSearch(ctx, { queries, count, noSync: args.noSync, exactWords: !args.noExactWords }, ui);
+  const r = await runSearch(ctx, { queries, count, noSync: args.noSync, exactWords: !args.noExactWords, blend: args.noBlend ? false : undefined }, ui);
   if (r.syncNotice) ui.warn(r.syncNotice);
   if (!r.results.length) ui.out(`No passages matched. The index holds ${num(r.searched.notes)} notes. Try other words.`);
   const body = (/** @type {typeof r.results[number] | typeof r.exactWords[number]} */ x) => {
@@ -25,10 +25,13 @@ export async function searchCommand(args, ui) {
   };
   for (const x of r.results) {
     const head = `${x.rank}. ${x.note}${x.section ? `  ›  ${x.section}` : ''}`;
-    ui.out(`${head.padEnd(60)} match ${x.score.toFixed(2)}`);
+    // The match number is always the match by meaning. A result that was moved up for its exact words says which.
+    const moved = /** @type {{ wordsBonus?: number, words?: string[] }} */ (x);
+    const held = moved.wordsBonus && moved.words ? `  + exact words: ${moved.words.join(', ')}` : '';
+    ui.out(`${head.padEnd(60)} match ${x.score.toFixed(2)}${held}`);
     body(x);
   }
-  // A second, separate list. It is left out when it would only repeat passages already shown above.
+  // A second, short list: exact-word passages the list above did not show. It is left out when it would only repeat.
   if (r.exactWords.length) {
     ui.out('');
     ui.out('Also contains these exact words:');
