@@ -75,6 +75,7 @@ const status = many(['status', '--json']);
 const inStep = JSON.parse(status.last.stdout).inStep;
 const syncNothing = many(['sync', '--json']);
 const searchCold = many(['search', 'when does the ferry rope need checking', '--no-sync', '--json']);
+const searchNoBlend = many(['search', 'when does the ferry rope need checking', '--no-sync', '--json', '--no-blend']);
 const searchNoExact = many(['search', 'when does the ferry rope need checking', '--no-sync', '--json', '--no-exact-words']);
 const searchPhrase = many(['search', 'when does "the ferry rope" need checking', '--no-sync', '--json']);
 const searchSync = many(['search', 'when does the ferry rope need checking', '--json']);
@@ -92,6 +93,7 @@ const out = {
   engineFirstLoadMs: Math.round(firstLoad.ms), inStep,
   statusMs: status.medianMs, syncNothingChangedMs: syncNothing.medianMs,
   searchColdNoSyncMs: searchCold.medianMs, searchColdNoSyncBreakdown: JSON.parse(searchCold.last.stdout).timings,
+  searchNoBlendMs: searchNoBlend.medianMs, searchNoBlendBreakdown: JSON.parse(searchNoBlend.last.stdout).timings,
   searchNoExactWordsMs: searchNoExact.medianMs, searchNoExactWordsBreakdown: JSON.parse(searchNoExact.last.stdout).timings,
   searchQuotedPhraseMs: searchPhrase.medianMs, searchQuotedPhraseBreakdown: JSON.parse(searchPhrase.last.stdout).timings, exactWordsListed: JSON.parse(searchCold.last.stdout).exactWords.length,
   searchWithQuickSyncMs: searchSync.medianMs, searchWithQuickSyncBreakdown: JSON.parse(searchSync.last.stdout).timings,

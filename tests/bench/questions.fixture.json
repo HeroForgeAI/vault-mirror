@@ -1,0 +1,18 @@
+[
+  {"n": 1, "kind": "close", "question": "what causes the dark patch on the bottom of my tomatoes", "expected": "Garden/Tomatoes.md"},
+  {"n": 2, "kind": "exact", "question": "Blossom end rot", "expected": "Garden/Tomatoes.md"},
+  {"n": 3, "kind": "exact", "question": "high potash liquid", "expected": "Garden/Tomatoes.md"},
+  {"n": 4, "kind": "close", "question": "how often should I turn the compost heap", "expected": "Garden/Compost.md"},
+  {"n": 5, "kind": "exact", "question": "green manure", "expected": "Garden/Garden plan.md"},
+  {"n": 6, "kind": "close", "question": "when do the tomatoes go outside in spring", "expected": "Garden/Garden plan.md"},
+  {"n": 7, "kind": "exact", "question": "two hundred litres", "expected": "Garden/Watering schedule.md"},
+  {"n": 8, "kind": "close", "question": "how do I keep the bread starter alive", "expected": "Kitchen/Sourdough.md"},
+  {"n": 9, "kind": "exact", "question": "gummy crumb", "expected": "Kitchen/Sourdough.md"},
+  {"n": 10, "kind": "exact", "question": "Three percent salt", "expected": "Kitchen/Pickles.md"},
+  {"n": 11, "kind": "close", "question": "how long does the stock need to simmer", "expected": "Kitchen/Soup stock.md"},
+  {"n": 12, "kind": "exact", "question": "rechargeable transit card", "expected": "Travel/Lisbon notes.md"},
+  {"n": 13, "kind": "close", "question": "which museum should I book before the trip", "expected": "Travel/Lisbon notes.md"},
+  {"n": 14, "kind": "exact", "question": "Plug adapter", "expected": "Travel/Packing list.md"},
+  {"n": 15, "kind": "exact", "question": "galvanised nails", "expected": "Projects/Shed rebuild.md"},
+  {"n": 16, "kind": "close", "question": "which yard should the timber be ordered from", "expected": "Projects/Budget.md"}
+]

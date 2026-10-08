@@ -31,7 +31,7 @@ Options for every command:
 
 init:     --project <dir>  --no-rule  --exclude <folder> (repeatable)
 sync:     --detach  --workers <n>  --full-speed  --wait <seconds>  --allow-mass-delete  --verify
-search:   -k, --count <n>  --no-sync  --no-exact-words
+search:   -k, --count <n>  --no-sync  --no-blend  --no-exact-words
 status:   --verify  --list  --screen
 rebuild:  --full  --yes
 `;
@@ -42,7 +42,7 @@ const COMMON = { json: { type: 'boolean' }, quiet: { type: 'boolean' }, 'no-colo
 const OPTIONS = {
   init: { project: { type: 'string' }, 'no-rule': { type: 'boolean' }, exclude: { type: 'string', multiple: true } },
   sync: { detach: { type: 'boolean' }, workers: { type: 'string' }, 'full-speed': { type: 'boolean' }, wait: { type: 'string' }, 'allow-mass-delete': { type: 'boolean' }, verify: { type: 'boolean' } },
-  search: { count: { type: 'string', short: 'k' }, 'no-sync': { type: 'boolean' }, 'no-exact-words': { type: 'boolean' } },
+  search: { count: { type: 'string', short: 'k' }, 'no-sync': { type: 'boolean' }, 'no-blend': { type: 'boolean' }, 'no-exact-words': { type: 'boolean' } },
   status: { verify: { type: 'boolean' }, list: { type: 'boolean' }, screen: { type: 'boolean' } },
   rebuild: { full: { type: 'boolean' }, yes: { type: 'boolean' }, workers: { type: 'string' }, 'full-speed': { type: 'boolean' } },
   doctor: {},
@@ -80,7 +80,7 @@ export async function main(argv) {
       if (rest.length) throw new VmError('VM_E_USAGE', { detail: 'sync takes no folder. It syncs the vault that init set up.' });
       result = await (await import('./commands/sync.js')).syncCommand({ detach: f.detach, workers: f.workers, fullSpeed: f['full-speed'], wait: f.wait, allowMassDelete: f['allow-mass-delete'], verify: f.verify }, ui);
     } else if (command === 'search') {
-      result = await (await import('./commands/search.js')).searchCommand({ queries: rest, count: f.count, noSync: f['no-sync'], noExactWords: f['no-exact-words'] }, ui);
+      result = await (await import('./commands/search.js')).searchCommand({ queries: rest, count: f.count, noSync: f['no-sync'], noExactWords: f['no-exact-words'], noBlend: f['no-blend'] }, ui);
     } else if (command === 'status') {
       result = await (await import('./commands/status.js')).statusCommand({ verify: f.verify, list: f.list, screen: f.screen }, ui);
     } else if (command === 'rebuild') {

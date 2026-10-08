@@ -171,6 +171,215 @@ Limits:
 - A hit means the right note was listed. It does not mean the passage shown answered the question.
 - Not measured: any other vault, any other language, or a question writer who had not seen the notes.
 
+## The blended list
+
+Measured Oct 7, 2026 on branch `feat/hybrid-search`, same machine and versions as above. Load average is written beside each run; none was taken on a quiet machine. Speed aside, these counts do not depend on load: the same questions give the same lists every time.
+
+**What changed.** A search used to print two lists that were never mixed: the best 8 notes by meaning, then up to 3 passages that hold the question's exact words. It now prints one ranked list, then the same short exact-words list for whatever the first list did not show. `--no-blend` (or `"blend": false` in the settings) gives the two lists as before, byte for byte.
+
+**How the one list is ordered.** Every passage keeps its match by meaning (the `match` number, 0 to 1). A passage that holds more than half of the question's distinctive words gains a bonus on top:
+
+- **Share.** Which of the question's distinctive words the passage holds, each word weighted by how rare it is in the vault (the same rarity weight the exact-words list uses). It counts whether a word is there, not how often. 0 to 1.
+- **Bonus.** Nothing up to a share of 0.5, then a straight line up to 0.20 at a share of 1.
+- **Standing out.** The full bonus goes to at most 3 notes. When more notes hold the words at least as fully, each gains 3 / that many of its bonus. Words that twenty notes hold equally tell nothing apart, so they move nothing.
+- **Order.** Match plus bonus, then match, then path. A note is listed once, by its highest passage.
+
+The three numbers (0.5, 0.20, 3) are in `src/search/blend.js`. No model is involved, and a search with the blend took 1 to 4 ms longer than one without (below).
+
+### The questions, and how they were made
+
+All on the practice vault (176 notes, 2,199 passages), which a reader can rebuild.
+
+- **Set A** (120 questions) and **set B** (120 questions): `tests/bench/questions.obsidian-help.a.json` and `.b.json`. Notes of 150 words or more were put in order of the SHA-256 of their vault path; set A is about the first 40, set B about the next 40. For each note there are three questions: **close** (a natural question that shares a few words with the note), **far** (no distinctive word of the question appears anywhere in the note or its file name) and **exact** (a name, a setting label, a code or a short phrase taken from the note word for word). Each has two more wordings of the kind an AI writes before it searches.
+- **The older 20**: `tests/acceptance/questions.obsidian-help.json`, ten **reworded** questions and ten in the note's **own words**, from the recall check above.
+
+Sets A and B were each written by an AI agent that was given the notes and the three definitions and nothing else: it did not know how the tool ranks or what was being compared, and the writer of set B was told not to look at set A. `ranking.mjs --check <vault>` confirms by script that all 80 far questions share no distinctive word with their note and that all 80 exact lookups are in their note word for word.
+
+**Set A and the older 20 shaped the design; set B judged it.** The three numbers above were chosen while looking at set A and the older 20. They were then frozen in a commit, set B was written after that commit, and set B was run once. Read the set A tables as a description and the set B tables as the test.
+
+A question counts at the place of the first right note (the expected note or a listed alternate) in what a search prints: the 8 results, then the exact-words list. "Printed" means anywhere in that output. MRR@10 and nDCG@10 are taken over the first ten places of the same output.
+
+A fourth list, `tests/bench/questions.fixture.json`, holds sixteen questions about the invented fixture vault. The acceptance script runs the ranking check on it (step B1) on macOS, Linux and Windows, to prove the script and the blend work on each system. Its notes are few and its questions easy, so both methods find nearly everything; it is not evidence for either.
+
+### Set B: the test (120 questions, run once; load average 4.1)
+
+`VAULT_MIRROR_HOME=<home> node tests/bench/ranking.mjs --questions tests/bench/questions.obsidian-help.b.json --check <the vault>`
+
+One wording:
+
+| Kind | Method | Top 1 | Top 3 | Top 5 | Top 8 | Printed | MRR@10 | nDCG@10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Close (40) | two lists | 36 | 39 | 39 | 39 | 40 | 0.932 | 0.941 |
+| Far (40) | two lists | 17 | 27 | 31 | 34 | 34 | 0.565 | 0.624 |
+| Exact (40) | two lists | 27 | 32 | 34 | 36 | 40 | 0.764 | 0.808 |
+| All (120) | two lists | 80 | 98 | 104 | 109 | 114 | 0.754 | 0.791 |
+| Close (40) | blended | 37 | 40 | 40 | 40 | 40 | 0.963 | 0.965 |
+| Far (40) | blended | 17 | 27 | 31 | 34 | 34 | 0.565 | 0.624 |
+| Exact (40) | blended | 37 | 39 | 39 | 39 | 40 | 0.949 | 0.959 |
+| All (120) | blended | 91 | 106 | 110 | 113 | 114 | 0.826 | 0.849 |
+| Close (40) | plain rank fusion | 36 | 39 | 39 | 40 | 40 | 0.942 | 0.947 |
+| Far (40) | plain rank fusion | 0 | 2 | 3 | 6 | 6 | 0.036 | 0.049 |
+| Exact (40) | plain rank fusion | 30 | 36 | 38 | 39 | 39 | 0.838 | 0.867 |
+| All (120) | plain rank fusion | 66 | 77 | 80 | 85 | 85 | 0.605 | 0.621 |
+
+Three wordings in one call:
+
+| Kind | Method | Top 1 | Top 3 | Top 5 | Top 8 | Printed | MRR@10 | nDCG@10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Close (40) | two lists | 34 | 38 | 39 | 39 | 40 | 0.905 | 0.925 |
+| Far (40) | two lists | 30 | 39 | 40 | 40 | 40 | 0.865 | 0.889 |
+| Exact (40) | two lists | 32 | 37 | 39 | 40 | 40 | 0.871 | 0.898 |
+| All (120) | two lists | 96 | 114 | 118 | 119 | 120 | 0.880 | 0.904 |
+| Close (40) | blended | 34 | 40 | 40 | 40 | 40 | 0.925 | 0.942 |
+| Far (40) | blended | 31 | 40 | 40 | 40 | 40 | 0.879 | 0.900 |
+| Exact (40) | blended | 38 | 40 | 40 | 40 | 40 | 0.975 | 0.981 |
+| All (120) | blended | 103 | 120 | 120 | 120 | 120 | 0.926 | 0.941 |
+| Close (40) | plain rank fusion | 36 | 39 | 40 | 40 | 40 | 0.944 | 0.958 |
+| Far (40) | plain rank fusion | 34 | 40 | 40 | 40 | 40 | 0.921 | 0.926 |
+| Exact (40) | plain rank fusion | 34 | 39 | 39 | 40 | 40 | 0.917 | 0.941 |
+| All (120) | plain rank fusion | 104 | 118 | 119 | 120 | 120 | 0.927 | 0.942 |
+
+### Set A and the older 20: what the design was shaped on (140 questions; load average 4.5)
+
+`VAULT_MIRROR_HOME=<home> node tests/bench/ranking.mjs --questions tests/bench/questions.obsidian-help.a.json --questions tests/acceptance/questions.obsidian-help.json`
+
+One wording:
+
+| Kind | Method | Top 1 | Top 3 | Top 5 | Top 8 | Printed | MRR@10 | nDCG@10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Close (40) | two lists | 38 | 40 | 40 | 40 | 40 | 0.971 | 0.970 |
+| Far (40) | two lists | 16 | 29 | 31 | 31 | 31 | 0.549 | 0.604 |
+| Exact (40) | two lists | 25 | 32 | 35 | 36 | 40 | 0.726 | 0.782 |
+| Reworded (10) | two lists | 7 | 9 | 9 | 9 | 9 | 0.800 | 0.826 |
+| Own words (10) | two lists | 5 | 9 | 9 | 10 | 10 | 0.714 | 0.786 |
+| All (140) | two lists | 91 | 119 | 124 | 126 | 130 | 0.750 | 0.788 |
+| Close (40) | blended | 39 | 40 | 40 | 40 | 40 | 0.988 | 0.981 |
+| Far (40) | blended | 16 | 29 | 31 | 31 | 31 | 0.549 | 0.604 |
+| Exact (40) | blended | 35 | 38 | 40 | 40 | 40 | 0.925 | 0.941 |
+| Reworded (10) | blended | 7 | 9 | 9 | 9 | 9 | 0.800 | 0.826 |
+| Own words (10) | blended | 7 | 10 | 10 | 10 | 10 | 0.850 | 0.889 |
+| All (140) | blended | 104 | 126 | 130 | 130 | 130 | 0.821 | 0.844 |
+| Close (40) | plain rank fusion | 37 | 40 | 40 | 40 | 40 | 0.958 | 0.964 |
+| Far (40) | plain rank fusion | 0 | 0 | 0 | 3 | 3 | 0.013 | 0.023 |
+| Exact (40) | plain rank fusion | 32 | 37 | 38 | 40 | 40 | 0.867 | 0.894 |
+| Reworded (10) | plain rank fusion | 6 | 8 | 8 | 9 | 9 | 0.696 | 0.732 |
+| Own words (10) | plain rank fusion | 5 | 9 | 10 | 10 | 10 | 0.725 | 0.780 |
+| All (140) | plain rank fusion | 80 | 94 | 96 | 102 | 102 | 0.627 | 0.646 |
+
+Three wordings in one call:
+
+| Kind | Method | Top 1 | Top 3 | Top 5 | Top 8 | Printed | MRR@10 | nDCG@10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Close (40) | two lists | 39 | 40 | 40 | 40 | 40 | 0.988 | 0.979 |
+| Far (40) | two lists | 31 | 36 | 40 | 40 | 40 | 0.860 | 0.884 |
+| Exact (40) | two lists | 34 | 37 | 38 | 38 | 40 | 0.899 | 0.918 |
+| Reworded (10) | two lists | 9 | 10 | 10 | 10 | 10 | 0.950 | 0.963 |
+| Own words (10) | two lists | 8 | 10 | 10 | 10 | 10 | 0.900 | 0.926 |
+| All (140) | two lists | 121 | 133 | 138 | 138 | 140 | 0.917 | 0.929 |
+| Close (40) | blended | 40 | 40 | 40 | 40 | 40 | 1.000 | 0.990 |
+| Far (40) | blended | 35 | 38 | 40 | 40 | 40 | 0.924 | 0.934 |
+| Exact (40) | blended | 37 | 38 | 39 | 40 | 40 | 0.946 | 0.956 |
+| Reworded (10) | blended | 9 | 10 | 10 | 10 | 10 | 0.950 | 0.963 |
+| Own words (10) | blended | 10 | 10 | 10 | 10 | 10 | 1.000 | 1.000 |
+| All (140) | blended | 131 | 136 | 139 | 140 | 140 | 0.959 | 0.963 |
+| Close (40) | plain rank fusion | 38 | 40 | 40 | 40 | 40 | 0.975 | 0.975 |
+| Far (40) | plain rank fusion | 34 | 38 | 39 | 40 | 40 | 0.901 | 0.915 |
+| Exact (40) | plain rank fusion | 37 | 38 | 38 | 39 | 39 | 0.942 | 0.947 |
+| Reworded (10) | plain rank fusion | 9 | 9 | 9 | 10 | 10 | 0.917 | 0.936 |
+| Own words (10) | plain rank fusion | 10 | 10 | 10 | 10 | 10 | 1.000 | 1.000 |
+| All (140) | plain rank fusion | 128 | 135 | 136 | 139 | 139 | 0.942 | 0.949 |
+
+### What the tables say
+
+- **On every kind of question, in both sets, with one wording and with three, the blended list was at least as good as the two lists in every column**, and better overall: on set B the first place went from 80 to 91 of 120 with one wording and from 96 to 103 with three; MRR@10 from 0.754 to 0.826 and from 0.880 to 0.926. That is the bar that was set before the default could change, so the blended list is the default.
+- **The gain is in exact lookups.** With one wording the right note was first for 27 of 40 exact lookups before and 37 after (set B). A name or a code used to be found in the second list; now it is at the top of the first.
+- **A far question with one wording is not helped.** Those rows are the same before and after, to the last digit. A note that shares no word with the question has no exact words to be found by, and the blend is built to leave such a search alone. Several wordings in one call are still what helps there.
+- **Single questions did move down.** Blended against two lists, the right note moved up in 30 searches and down in 8 on set B (36 and 3 on set A and the older 20), each time by one to three places and never out of the printed output. The script lists each one.
+- **Plain rank fusion was tried first and not kept.** It gives every note 1 / (60 + its place) from each list and adds the two, the usual way to merge two rankings. With one far wording the right note was first for none of 40 questions in either set, and in the top 8 for 3 and 6 of 40, against 31 and 34 by meaning alone. The reason is simple: on a vault this size nearly every note is somewhere in both lists, the right note of a far question is in one list only by construction, and a note that is in both lists at any place outranks a note that is first in one. With three wordings it did about as well as the blend (MRR@10 0.927 against 0.926 on set B, 0.942 against 0.959 on set A and the older 20). A method that fails one common case that badly cannot be a default.
+
+### Speed
+
+Cold start, `search --no-sync --json`, median of 9, practice vault, load average 4.9:
+
+| Search | Two lists (`--no-blend`) | Blended |
+| --- | --- | --- |
+| One wording | 0.357 s | 0.359 s |
+| Three wordings | 0.385 s | 0.392 s |
+| The exact-words part of that (`timings.wordsMs`) | 2 ms | 3 ms one wording, 6 ms three |
+| Peak memory | 0.68 GB | 0.59 to 0.68 GB (the same within what one run varies) |
+
+Scale check (`tests/bench/scale.mjs --notes 2000 --passages 50000 --runs 7`, synthetic vectors, load average 5.8): one wording 0.503 s blended and 0.496 s with `--no-blend`; the exact-words part 19 ms and 18 ms; three wordings 0.541 s blended; peak memory 0.84 GB, as before. Warm, inside one process (`ranking.mjs`, which calls `searchReady` directly): 96.7 ms against 95.8 ms per question with one wording and 286.8 against 285.5 ms with three, nearly all of it embedding the question.
+
+### A second pass with another model: measured, not built in
+
+Other tools score the top results again with a second model that reads the question and the passage together (often called reranking). This was measured before deciding, and it is **not in vault-mirror**: on these questions it made the list worse, and it needs a second runtime.
+
+**Can it run on what the tool already has? No.** ruvector 0.3.3 ships one model runner, for embedding models. Given a small model of this kind (ms-marco-TinyBERT-L2-v2, 17.6 MB) it either stops with an error (CLS pooling) or returns 384 zeros (mean pooling): it expects a grid of numbers per token, and such a model returns one number. ruvector's package also holds no code that merges two rankings or scores a pair. So a second pass needs its own runtime: `onnxruntime-node` 1.30.0 is 287 MB installed for every platform together (85 MB of it is the macOS arm64 build) and has builds for macOS arm64, Linux x64 and arm64 and Windows x64 and arm64, with none for Intel Macs; `onnxruntime-web` (WebAssembly, any platform) is 145 MB. Today the whole of vault-mirror installs at about 67 MB.
+
+**Three small models were tried**, each over the top 20 passages of the blended list, the question's first wording against each passage, 2 threads:
+
+| Model | Download | Extra memory once loaded | Time per question, 20 passages (median) | Needs |
+| --- | --- | --- | --- | --- |
+| cross-encoder/ms-marco-MiniLM-L6-v2 | 91.0 MB | about 170 to 180 MB | 75 to 78 ms | the runtime; its scores matched the two on its model page to six digits |
+| jinaai/jina-reranker-v1-tiny-en | 132.4 MB | about 305 MB | 62 to 63 ms | the runtime and a second tokenizer (`@huggingface/tokenizers`, 0.4 MB); not checked against a reference score |
+| cross-encoder/ms-marco-TinyBERT-L2-v2 | 17.6 MB | about 60 MB | 8 ms | the runtime |
+
+Loading the runtime and opening the 91 MB model took about 60 ms in a fresh process. Machine: Apple M4 Max; a laptop with fewer and slower cores will take longer per question.
+
+"Second pass" puts the 20 passages in the second model's order and prints the first 8. "Mixed by place" keeps more of the first order near the top (three quarters of the weight in places 1 to 3, less further down), the shape qmd describes. MRR@10 by kind; every other column is printed by the script.
+
+Set B (the test):
+
+| Model | Wordings | Method | Close MRR@10 | Far MRR@10 | Exact MRR@10 | All MRR@10 | All, top 5 | All, nDCG@10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| (no second pass) | one | blended | 0.963 | 0.565 | 0.949 | 0.826 | 110 of 120 | 0.849 |
+| ms-marco-MiniLM-L6-v2 | one | second pass | 0.902 | 0.251 | 0.988 | 0.714 | 98 of 120 | 0.742 |
+| ms-marco-MiniLM-L6-v2 | one | second pass, mixed by place | 0.963 | 0.530 | 0.963 | 0.818 | 108 of 120 | 0.835 |
+| (no second pass) | three | blended | 0.925 | 0.879 | 0.975 | 0.926 | 120 of 120 | 0.941 |
+| ms-marco-MiniLM-L6-v2 | three | second pass | 0.867 | 0.313 | 0.926 | 0.702 | 104 of 120 | 0.752 |
+| ms-marco-MiniLM-L6-v2 | three | second pass, mixed by place | 0.921 | 0.859 | 0.975 | 0.918 | 120 of 120 | 0.931 |
+| jina-reranker-v1-tiny-en | one | second pass | 0.912 | 0.221 | 0.963 | 0.699 | 94 of 120 | 0.725 |
+| jina-reranker-v1-tiny-en | one | second pass, mixed by place | 0.963 | 0.532 | 0.963 | 0.819 | 110 of 120 | 0.836 |
+| jina-reranker-v1-tiny-en | three | second pass | 0.842 | 0.246 | 0.912 | 0.667 | 96 of 120 | 0.702 |
+| jina-reranker-v1-tiny-en | three | second pass, mixed by place | 0.925 | 0.851 | 0.975 | 0.917 | 120 of 120 | 0.931 |
+| ms-marco-TinyBERT-L2-v2 | one | second pass | 0.887 | 0.143 | 0.975 | 0.668 | 89 of 120 | 0.688 |
+| ms-marco-TinyBERT-L2-v2 | one | second pass, mixed by place | 0.963 | 0.517 | 0.963 | 0.814 | 108 of 120 | 0.828 |
+| ms-marco-TinyBERT-L2-v2 | three | second pass | 0.817 | 0.219 | 0.929 | 0.655 | 95 of 120 | 0.688 |
+| ms-marco-TinyBERT-L2-v2 | three | second pass, mixed by place | 0.921 | 0.847 | 0.975 | 0.914 | 120 of 120 | 0.928 |
+
+Set A and the older 20 (taken before one word of one far question in set A was changed; the blended rows were run again afterwards and did not move, the second-pass rows were not run again):
+
+| Model | Wordings | Method | Close MRR@10 | Far MRR@10 | Exact MRR@10 | Reworded MRR@10 | Own words MRR@10 | All MRR@10 | All, top 5 | All, nDCG@10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| (no second pass) | one | blended | 0.988 | 0.549 | 0.925 | 0.800 | 0.850 | 0.821 | 130 of 140 | 0.844 |
+| ms-marco-MiniLM-L6-v2 | one | second pass | 0.938 | 0.253 | 0.988 | 0.482 | 0.883 | 0.720 | 116 of 140 | 0.756 |
+| ms-marco-MiniLM-L6-v2 | one | second pass, mixed by place | 0.988 | 0.523 | 0.938 | 0.767 | 0.850 | 0.815 | 129 of 140 | 0.836 |
+| (no second pass) | three | blended | 1.000 | 0.924 | 0.946 | 0.950 | 1.000 | 0.959 | 139 of 140 | 0.963 |
+| ms-marco-MiniLM-L6-v2 | three | second pass | 0.896 | 0.339 | 0.950 | 0.560 | 0.670 | 0.712 | 120 of 140 | 0.752 |
+| ms-marco-MiniLM-L6-v2 | three | second pass, mixed by place | 1.000 | 0.918 | 0.956 | 0.933 | 1.000 | 0.959 | 139 of 140 | 0.962 |
+| jina-reranker-v1-tiny-en | one | second pass | 0.855 | 0.194 | 0.958 | 0.520 | 0.950 | 0.679 | 107 of 140 | 0.709 |
+| jina-reranker-v1-tiny-en | one | second pass, mixed by place | 0.983 | 0.509 | 0.931 | 0.800 | 0.850 | 0.810 | 128 of 140 | 0.834 |
+| jina-reranker-v1-tiny-en | three | second pass | 0.850 | 0.252 | 0.917 | 0.376 | 0.745 | 0.657 | 105 of 140 | 0.701 |
+| jina-reranker-v1-tiny-en | three | second pass, mixed by place | 1.000 | 0.917 | 0.956 | 0.933 | 1.000 | 0.959 | 139 of 140 | 0.959 |
+| ms-marco-TinyBERT-L2-v2 | one | second pass | 0.926 | 0.178 | 0.929 | 0.283 | 0.883 | 0.664 | 109 of 140 | 0.698 |
+| ms-marco-TinyBERT-L2-v2 | one | second pass, mixed by place | 0.988 | 0.510 | 0.931 | 0.767 | 0.850 | 0.809 | 128 of 140 | 0.836 |
+| ms-marco-TinyBERT-L2-v2 | three | second pass | 0.885 | 0.240 | 0.900 | 0.329 | 0.720 | 0.653 | 111 of 140 | 0.692 |
+| ms-marco-TinyBERT-L2-v2 | three | second pass, mixed by place | 1.000 | 0.912 | 0.950 | 0.933 | 1.000 | 0.956 | 139 of 140 | 0.959 |
+
+- **The second pass alone made the list much worse** with every model: overall MRR@10 fell from 0.826 to between 0.668 and 0.714 with one wording on set B, and from 0.926 to between 0.655 and 0.702 with three. Far questions fell furthest (0.565 to 0.143 to 0.251). These small models were trained on web search questions and lean on shared words even more than the reading model does.
+- **It helped only exact lookups with one wording** (0.949 to between 0.963 and 0.988), where the blend had already taken most of the gain.
+- **Mixed by place it was about even, a little below** (0.814 to 0.819 against 0.826; 0.914 to 0.918 against 0.926).
+- So there is no setting to turn it on. A larger model might do better (qmd's is about 640 MB); none was tried, because a download of that size is outside what this tool asks of a person.
+
+How to repeat it is at the top of `tests/bench/second-pass.mjs`. The models and the runtime were downloaded to a scratch folder and deleted afterwards.
+
+### Limits
+
+- One vault of 176 notes, in English, about one subject, and questions written by an AI that had read the notes. With 40 questions of a kind, one question is 2.5 points. **Not numbers to print**, as with every figure in this file.
+- A far question here shares no word at all with its note, which is harder than most real questions; an exact lookup here is 2 to 6 words, which is the easy case for exact words. Real questions sit between the two.
+- The three numbers in the blend were chosen on one vault. Set B says they hold on other notes of the same vault. Nothing here says they are the best numbers for another vault, another language or a much larger one. The private vault of 2,082 notes in the section above was not used: its questions are not in this repo.
+- A right note in the list does not mean the passage shown answers the question.
+
 ## Reading models we compared
 
 Before the default was fixed, every reading model that `ruvector` 0.3.3 names in its code was run through ruvector's own embedder and scored on the same questions. This was a study outside the tool: each model was selected with `initOnnxEmbedder({ modelId, maxLength })` in a small test harness. vault-mirror 0.1.0 itself ships one model, the default.
@@ -294,6 +503,7 @@ node tests/acceptance/run.mjs --vault tests/fixtures/vault
 node tests/acceptance/run.mjs --vault <a vault> --read-only-vault --questions tests/acceptance/questions.obsidian-help.json
 node tests/bench/scale.mjs --dir <an empty scratch folder>
 node tests/bench/scale.mjs --dir <an empty scratch folder> --notes 2000 --passages 50000 --runs 7
+VAULT_MIRROR_HOME=<a home whose vault is the practice vault> node tests/bench/ranking.mjs --questions tests/bench/questions.obsidian-help.b.json --check <the vault>
 ```
 
 Run them with nothing else heavy on the machine, and write the load average beside each number.
