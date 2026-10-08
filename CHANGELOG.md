@@ -6,6 +6,10 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ## [Unreleased]
 
+### Fixed
+
+- Times that round up to a whole minute or hour now read that way: 59.5 seconds is `1 min` and 3599.5 seconds is `1 h 0 min`, not `60 s` or `59 min 60 s`.
+
 ## [0.1.1] - 2026-10-08
 
 vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still only ever read. Upgrading reads no note again: nothing changed in how notes are cut or read, and an index made by 0.1.0 is kept.
