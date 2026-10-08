@@ -9,7 +9,7 @@ import { configureWriter, writeFile } from '../../store/safe-write.js';
 import { walkVault, excludePath } from '../../vault/walk.js';
 import { lookupVault } from '../../vault/obsidian-registry.js';
 import { stat, walk } from '../../vault/read-only-fs.js';
-import { RULE_BLOCK, RULE_START, RULE_END } from '../../rule-text.js';
+import { RULE_BLOCK, RULE_LINE, RULE_START, RULE_END, OLD_RULE_LINES } from '../../rule-text.js';
 import { VmError } from '../../errors.js';
 import { plural } from '../output.js';
 
@@ -43,9 +43,21 @@ export function projectCheck(project, vaultReal, obsidianVaults) {
   return { ok: true, reason: null, real };
 }
 
+/** Where a rule pasted without its markers sits: a whole line that is the rule, in today's wording or an earlier one. @param {string} text @returns {[number, number] | null} */
+function bareRule(text) {
+  for (const line of [RULE_LINE, ...OLD_RULE_LINES]) {
+    for (let at = text.indexOf(line); at >= 0; at = text.indexOf(line, at + 1)) {
+      const end = at + line.length;
+      if ((at === 0 || text[at - 1] === '\n') && (end === text.length || /^\r?\n/.test(text.slice(end, end + 2)))) return [at, end];
+    }
+  }
+  return null;
+}
+
 /**
  * Insert or replace the rule between its two markers. Nothing else in the file is touched.
  * A file whose every line ends the Windows way (CRLF) gets the rule in that form, so it never ends up with both.
+ * A rule line pasted without its markers is replaced where it stands.
  * @param {string | null} existing
  */
 export function applyRule(existing) {
@@ -53,8 +65,9 @@ export function applyRule(existing) {
   const eol = existing.includes('\r\n') && !/(^|[^\r])\n/.test(existing) ? '\r\n' : '\n';
   const block = RULE_BLOCK.split('\n').join(eol);
   const a = existing.indexOf(RULE_START); const b = existing.indexOf(RULE_END);
-  if (a >= 0 && b > a) {
-    const next = existing.slice(0, a) + block + existing.slice(b + RULE_END.length);
+  const at = a >= 0 && b > a ? [a, b + RULE_END.length] : bareRule(existing);
+  if (at) {
+    const next = existing.slice(0, at[0]) + block + existing.slice(at[1]);
     return { text: next, action: next === existing ? 'unchanged' : 'updated' };
   }
   const sep = existing.length === 0 || existing.endsWith(eol + eol) ? '' : existing.endsWith('\n') ? eol : eol + eol;

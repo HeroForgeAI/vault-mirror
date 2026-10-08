@@ -6,6 +6,15 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ## [Unreleased]
 
+### Added
+
+- `search` ends with one line that says how much text came back and how much the notes it came from hold, for example "Returned about 590 words in 5 passages, from 5 notes that hold about 9,200 words." It counts words, not tokens, from records the search has already read, and works out no multiplier. The line goes to stderr with the other notices, so the result lists on stdout are unchanged. `--json` carries the same counts as `reading: { passages, words, notes, noteWords }`. `--quiet`, or `"readingSummary": false` in the settings, turns the line off.
+- `docs/GETTING-NOTES-IN.md`: how to turn emails, PDFs, Word files and Notion pages into Markdown notes the tool can read, and what to keep out. Linked from the README.
+
+### Changed
+
+- The rule that `init` writes has one more sentence: use `vault-mirror search` before the Obsidian command-line tool or plain file search, and turn to those only when it returns nothing useful. Run `vault-mirror init "<folder>"` again to get it. `init` replaces the earlier rule where it stands, also when it was pasted without its two markers, touches no other line, and keeps the file's line endings.
+
 ### Fixed
 
 - Times that round up to a whole minute or hour now read that way: 59.5 seconds is `1 min` and 3599.5 seconds is `1 h 0 min`, not `60 s` or `59 min 60 s`.

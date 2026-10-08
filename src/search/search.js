@@ -19,6 +19,7 @@ import { debug, runLine, setLogDir } from '../log.js';
 import { plural } from '../cli/output.js';
 import { wordsFor } from '../words/store.js';
 import { exactWordHits, notAlreadyShown } from './exact-words.js';
+import { measureReading } from './reading.js';
 
 /** At most `max` characters, whitespace collapsed, never cut inside a word. @param {string} text @param {number} [max] */
 export function snippet(text, max = 400) {
@@ -164,8 +165,9 @@ export async function searchReady(ready, opts) {
   });
   const exactWords = notAlreadyShown(wordHits.map((h) => ({ passage: `${h.notePath}#${h.n}`, hit: h })), results)
     .map(({ hit }, i) => ({ rank: i + 1, score: Math.round(hit.score * 100) / 100, words: hit.words, ...shape(hit.notePath, hit.n) }));
+  const reading = measureReading([...results, ...exactWords], record); // from records already read above
   timings.readMs = Math.round(performance.now() - t);
-  return { results, exactWords, timings };
+  return { results, exactWords, reading, timings };
 }
 
 /**
@@ -246,10 +248,10 @@ export async function runSearch(ctx, opts, ui) {
   } finally { await embedder.shutdown(); }
   timings.modelAndEmbedMs += found.timings.embedMs;
   timings.searchMs = found.timings.searchMs; timings.wordsMs = found.timings.wordsMs; timings.readMs = found.timings.readMs;
-  const { results, exactWords } = found;
+  const { results, exactWords, reading } = found;
   for (const n of eng.notices) ui.warn(n);
   for (const w of eng.warnings) ui.warnings.push(w);
   const tookMs = Math.round(performance.now() - t0);
   runLine('search', { results: results.length, exact_words: exactWords.length, phrasings: opts.queries.length, ms: tookMs }); // never the question text
-  return { query: opts.queries[0], queries: opts.queries, results, exactWords, searched: { notes: manifest.totals.notes, passages: manifest.totals.passages }, inStep, syncNotice, tookMs, timings, engine: eng.engine.name };
+  return { query: opts.queries[0], queries: opts.queries, results, exactWords, reading, searched: { notes: manifest.totals.notes, passages: manifest.totals.passages }, inStep, syncNotice, tookMs, timings, engine: eng.engine.name };
 }
