@@ -10,7 +10,8 @@ import * as safe from '../../src/store/safe-write.js';
 import { projectCheck, applyRule } from '../../src/cli/commands/init.js';
 import { RULE_BLOCK } from '../../src/rule-text.js';
 import { VmError } from '../../src/errors.js';
-import { tmpDir } from '../helpers/tmp.mjs';
+import { fileURLToPath } from 'node:url';
+import { tmpDir, DIR_LINK } from '../helpers/tmp.mjs';
 
 /** A temp tree with one vault and a folder of two vaults. */
 function tree() {
@@ -25,11 +26,13 @@ const code = (/** @type {string} */ c) => (/** @type {any} */ e) => e instanceof
 
 test('paths are compared on whole segments, and a path that does not exist yet still resolves', () => {
   const { root, vault } = tree();
-  assert.equal(isInside('/a/vault2', '/a/vault'), false);
-  assert.equal(isInside('/a/vault/x', '/a/vault'), true);
-  assert.equal(isInside('/a/vault', '/a/vault'), true);
+  const a = path.join(path.parse(root).root, 'a');
+  assert.equal(isInside(path.join(a, 'vault2'), path.join(a, 'vault')), false);
+  assert.equal(isInside(path.join(a, 'vault', 'x'), path.join(a, 'vault')), true);
+  assert.equal(isInside(path.join(a, 'vault'), path.join(a, 'vault')), true);
+  assert.equal(isInside(a, path.parse(root).root), true, 'a parent that already ends in a separator');
   assert.equal(resolveSafe(path.join(vault, 'not', 'yet', 'here')), path.join(vault, 'not', 'yet', 'here'));
-  fs.symlinkSync(vault, path.join(root, 'link-to-vault'));
+  fs.symlinkSync(vault, path.join(root, 'link-to-vault'), DIR_LINK);
   assert.equal(resolveSafe(path.join(root, 'link-to-vault', 'new-home')), path.join(vault, 'new-home'), 'the nearest existing ancestor is resolved through the symlink');
 });
 
@@ -38,7 +41,7 @@ test('index in vault and vault in index are refused, also through a symlink and 
   assert.throws(() => checkIndexOutside(vault, path.join(vault, '.vault-mirror')), code('VM_E_INDEX_IN_VAULT'));
   assert.throws(() => checkIndexOutside(vault, path.join(vault, 'a', 'b', 'does-not-exist-yet')), code('VM_E_INDEX_IN_VAULT'));
   assert.throws(() => checkIndexOutside(vault, root), code('VM_E_INDEX_IN_VAULT'), 'the vault inside the home folder');
-  fs.symlinkSync(path.join(vault, 'Notes'), path.join(root, 'sneaky-home'));
+  fs.symlinkSync(path.join(vault, 'Notes'), path.join(root, 'sneaky-home'), DIR_LINK);
   assert.throws(() => checkIndexOutside(vault, path.join(root, 'sneaky-home', 'idx')), code('VM_E_INDEX_IN_VAULT'), 'a symlinked home that lands in the vault');
   assert.equal(checkIndexOutside(vault, path.join(root, 'vault2', 'home')), path.join(root, 'vault2', 'home'), 'a sibling whose name starts the same is fine');
 });
@@ -56,8 +59,8 @@ test('one vault only: home, root, a folder of vaults and a folder inside a vault
   assert.equal(plain.opened, false);
   assert.equal(plain.warnings.length, 1, 'no .obsidian anywhere is allowed with a warning');
   assert.throws(() => checkOneVault(path.join(root, 'nope')), (e) => e instanceof VmError && e.code === 'VM_E_VAULT_MISSING' && e.exitCode === 4);
-  const many = new URL('../fixtures/many-vaults', import.meta.url).pathname;
-  assert.throws(() => checkOneVault(decodeURIComponent(many)), code('VM_E_NOT_ONE_VAULT'), 'the fixture folder of several vaults');
+  const many = fileURLToPath(new URL('../fixtures/many-vaults', import.meta.url));
+  assert.throws(() => checkOneVault(many), code('VM_E_NOT_ONE_VAULT'), 'the fixture folder of several vaults');
 });
 
 test('the only writer: a write or delete outside the two roots throws', () => {
@@ -83,7 +86,7 @@ test('the only writer: a write or delete outside the two roots throws', () => {
   assert.throws(() => safe.openAppend(path.join(vault, 'A.md')), refused);
   assert.throws(() => safe.createExclusive(path.join(root, 'many', 'One', 'x.lock'), 'x'), refused, 'inside a vault that is not the registered one');
   assert.throws(() => safe.writeFile(path.join(root, 'many', 'One', 'CLAUDE.md'), 'x'), refused);
-  fs.symlinkSync(vault, path.join(home, 'into-vault'));
+  fs.symlinkSync(vault, path.join(home, 'into-vault'), DIR_LINK);
   assert.throws(() => safe.writeFile(path.join(home, 'into-vault', 'C.md'), 'x'), refused, 'a symlink out of the home folder into the vault');
   assert.equal(fs.readFileSync(path.join(vault, 'A.md'), 'utf8'), 'a');
   assert.deepEqual(fs.readdirSync(vault).sort(), ['.obsidian', 'A.md', 'Notes']);
@@ -126,6 +129,26 @@ test('the rule is one block between two markers; a re-run replaces it and touche
   assert.equal(again.action, 'updated');
   assert.ok(again.text.includes(RULE_BLOCK) && again.text.endsWith('\nText after the rule.\n') && !again.text.includes('An older wording.'));
   assert.equal(again.text.split('vault-mirror:start').length, 2, 'never a second copy');
+});
+
+test('the rule in a file with Windows line endings: the file keeps them, and a second run changes nothing', () => {
+  const before = '# My project\r\n\r\nKeep this line.\r\n';
+  const first = applyRule(before);
+  assert.equal(first.action, 'updated');
+  assert.ok(first.text.startsWith(before), 'what was there is untouched');
+  assert.ok(!/[^\r]\n/.test(first.text), `no line of the file ends without a carriage return: ${JSON.stringify(first.text)}`);
+  assert.equal(first.text.replace(/\r\n/g, '\n'), '# My project\n\nKeep this line.\n\n' + RULE_BLOCK + '\n', 'the same file as with plain line endings');
+  assert.equal(first.text.split('vault-mirror:start').length, 2);
+  assert.equal(applyRule(first.text).action, 'unchanged', 'a second run');
+  // A file checked out with Windows line endings already holds the rule in that form: it is the rule, not an older wording.
+  const checkedOut = ('Intro.\n\n' + RULE_BLOCK + '\nAfter.\n').replace(/\n/g, '\r\n');
+  assert.deepEqual(applyRule(checkedOut), { text: checkedOut, action: 'unchanged' });
+  // An older wording in such a file is replaced in the file's own line endings.
+  const older = applyRule(checkedOut.replace('Do not read the whole vault.', 'An older wording.'));
+  assert.deepEqual([older.action, older.text], ['updated', checkedOut]);
+  // Plain line endings, and a file that mixes the two, get plain ones as before.
+  assert.ok(!applyRule('a\nb\r\n').text.slice(6).includes('\r'));
+  assert.ok(!applyRule('').text.includes('\r'));
 });
 
 test('worker count is automatic and conservative', () => {

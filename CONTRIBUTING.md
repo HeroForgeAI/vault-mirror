@@ -1,6 +1,6 @@
 # Contributing to vault-mirror
 
-**The short version.** Ideas and fixes are welcome. Everything comes in as a pull request from your own fork, and a maintainer approves it before it merges.
+**The short version.** Ideas and fixes are welcome. Everything comes in as a pull request from your own fork. Automated checks run on it, and Mak Allen approves it before it merges.
 
 You do not need to be a programmer to help. A clear bug report, a confusing sentence you spotted, or a note that it worked (or did not) on your computer are all real contributions.
 
@@ -21,7 +21,7 @@ Open an issue and pick **A question, or help getting set up**. No question is to
 
 ## Reporting a bug
 
-Open an issue with the bug form. It asks for your version (`vault-mirror --version`), operating system, Node version, the command you ran, and what `status` and `doctor` print. Reports from Windows, Intel Macs and Linux are especially welcome: those platforms are not yet verified.
+Open an issue with the bug form. It asks for your version (`vault-mirror --version`), operating system, Node version, the command you ran, and what `status` and `doctor` print. Reports from Intel Macs, Windows on ARM and Linux on ARM are especially welcome: those are not yet verified. So are reports from large vaults on Windows and Linux, which are tested on CI with small vaults only.
 
 Security problems are different. They go through [SECURITY.md](SECURITY.md), which is private, and never into a public issue.
 
@@ -33,7 +33,7 @@ For anything bigger, **open an issue first** and describe the change in two sent
 
 ## Making the change
 
-1. **Fork** the repo on GitHub. Nobody outside the two maintainers can push to this repo, so your fork is where your work lives.
+1. **Fork** the repo on GitHub. Nobody can push straight to this repo's main branch, so your fork is where your work lives.
 2. **Branch** from `main` in your fork.
 3. **Set up:**
 
@@ -69,13 +69,13 @@ For anything bigger, **open an issue first** and describe the change in two sent
 
 1. **CI runs** your branch on macOS, Linux and Windows. If this is your first pull request here, the run waits for a maintainer to click "approve". That is a safety step GitHub applies to new contributors, not a judgment of your work.
 2. **A maintainer reviews it**, usually within a few days. Expect questions or requested changes. That is normal.
-3. **A maintainer approves and merges it** as one squashed commit. If you push again after an approval, the approval is cleared and the new version is reviewed.
+3. **Mak Allen approves and merges it** as one squashed commit. Every merge needs his approval. If you push again after he has said yes, the new version is looked at again before it merges.
 
 A pull request that goes quiet gets a polite nudge after two weeks and is closed after four, with an invitation to reopen it. See [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Who decides
 
-The two maintainers: Mak Allen ([@HF-teamdev](https://github.com/HF-teamdev)) and Mark Allen ([@mamd69](https://github.com/mamd69)). Either one's approval is enough. They may say no. When they do, it will be kind and it will come with a reason.
+The two maintainers: Mak Allen ([@HF-teamdev](https://github.com/HF-teamdev)) and Mark Allen ([@mamd69](https://github.com/mamd69)). Either may review and ask for changes. Mak's approval is the one a merge needs. They may say no. When they do, it will be kind and it will come with a reason.
 
 ## The hard lines
 
@@ -115,7 +115,7 @@ vault-mirror is released under the [MIT license](LICENSE). Contributions come in
 
 ## Releases
 
-Only maintainers tag and release. People install a pinned tag, so **a published tag is never moved**. A fix ships as a new version.
+Only Mak Allen tags and releases. People install a pinned tag, so **a published tag is never moved**. A fix ships as a new version.
 
 ## Conduct
 

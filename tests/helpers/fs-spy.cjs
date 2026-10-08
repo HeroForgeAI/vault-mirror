@@ -2,9 +2,10 @@
 // the folder named by VM_SPY_ROOT (the vault). Each violation is also written to VM_SPY_LOG.
 const fs = require('node:fs');
 const path = require('node:path');
-const root = process.env.VM_SPY_ROOT ? fs.realpathSync(process.env.VM_SPY_ROOT) : null;
+const { fileURLToPath } = require('node:url');
+const root = process.env.VM_SPY_ROOT ? fs.realpathSync.native(process.env.VM_SPY_ROOT) : null;
 const rawAppend = fs.appendFileSync;
-const rawRealpath = fs.realpathSync;
+const rawRealpath = fs.realpathSync.native; // the one true path on every system (letter case and short names on Windows)
 
 function resolve(p) {
   let current = path.resolve(String(p)); const rest = [];
@@ -16,9 +17,9 @@ function resolve(p) {
 function check(name, p) {
   if (!root || p == null || typeof p === 'number') return;
   if (typeof p !== 'string' && !Buffer.isBuffer(p) && !(p instanceof URL)) return;
-  const real = resolve(p instanceof URL ? p.pathname : p);
+  const real = resolve(p instanceof URL ? fileURLToPath(p) : p);
   if (real === root || real.startsWith(root + path.sep)) {
-    try { rawAppend(process.env.VM_SPY_LOG || '/dev/null', `${name} ${real}\n`); } catch { /* still throw */ }
+    try { rawAppend(process.env.VM_SPY_LOG || require('node:os').devNull, `${name} ${real}\n`); } catch { /* still throw */ }
     throw new Error(`fs-spy: ${name} on a vault path: ${real}`);
   }
 }

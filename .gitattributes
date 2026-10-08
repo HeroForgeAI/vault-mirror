@@ -1,3 +1,5 @@
+# Text files are LF on every system, so a Windows checkout reads the same as a Mac one.
+* text=auto eol=lf
 tests/fixtures/** -text
 *.gif binary
 *.png binary

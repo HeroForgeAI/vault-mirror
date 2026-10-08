@@ -8,10 +8,14 @@ const made = [];
 export function tmpDir(label = 'vm') {
   const base = process.env.VAULT_MIRROR_TEST_TMP || os.tmpdir();
   fs.mkdirSync(base, { recursive: true });
-  const dir = fs.realpathSync(fs.mkdtempSync(path.join(base, `${label}-`)));
+  // The native call gives the one true path, as the tool does: on Windows it also expands a short name such as RUNNER~1.
+  const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(base, `${label}-`)));
   made.push(dir);
   return dir;
 }
+/** The link type for a folder: a junction on Windows, which needs no special rights. */
+export const DIR_LINK = process.platform === 'win32' ? 'junction' : 'dir';
+
 process.on('exit', () => { for (const d of made) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* leave it */ } } });
 
 /** A stand-in token counter for tests that need no model: one token per word or punctuation mark, more for long words. @param {string} text */

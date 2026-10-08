@@ -17,7 +17,7 @@ It keeps an index, a lookup list of your notes, on your computer. Your AI asks i
 </picture>
 
 <p>A real result on 15 invented notes. It can miss, and then your AI searches the files.<br>
-macOS (Apple Silicon): tested. Windows and Linux: <a href="https://github.com/HeroForgeAI/vault-mirror/actions/workflows/ci.yml">in&nbsp;testing</a>.</p>
+Tested on macOS (Apple Silicon), Windows and Linux, on <a href="https://github.com/HeroForgeAI/vault-mirror/actions/workflows/ci.yml">CI</a>.</p>
 
 </div>
 
@@ -28,7 +28,7 @@ macOS (Apple Silicon): tested. Windows and Linux: <a href="https://github.com/He
 **Or by hand,** with Node 20 or newer and git:
 
 ```bash
-npm install -g github:HeroForgeAI/vault-mirror#v0.1.0
+npm install -g github:HeroForgeAI/vault-mirror#v0.1.1
 ```
 
 Then `vault-mirror init "<folder>"`, `vault-mirror sync` and `vault-mirror search "<question>"`. [What each one prints](#type-it-yourself).
@@ -75,10 +75,10 @@ You can remove it at any time. Your vault is not touched either way. Worried abo
 3. Install the pinned release:
 
    ```bash
-   npm install -g github:HeroForgeAI/vault-mirror#v0.1.0
+   npm install -g github:HeroForgeAI/vault-mirror#v0.1.1
    ```
 
-   Success: `vault-mirror --version` prints `0.1.0`. npm also prints a funding note; ignore it. If the shell says `command not found`, add the `bin` folder under `npm prefix -g` to the PATH.
+   Success: `vault-mirror --version` prints `0.1.1`. npm also prints a funding note; ignore it. If the shell says `command not found`, add the `bin` folder under `npm prefix -g` to the PATH.
 4. Run `vault-mirror doctor`. Success: the last line starts `Ready.` The first run prints "Downloading the reading model once (about 90 MB). After this, everything runs on your computer." That is the only download.
 5. Stay in the folder you are already working in (do not `cd`), and run `vault-mirror init "<folder>"`. It adds one rule block to `CLAUDE.md` and `AGENTS.md` in that folder. Success: "Set up &lt;name&gt; (&lt;count&gt; notes). It only reads your notes." and a last line `Next: vault-mirror sync`. If it says "The vault folder was not found", the path is wrong and nothing was changed. If it says Obsidian has not opened this folder as a vault yet, that is harmless: file paths work either way.
 6. Run `vault-mirror sync --detach`, then `vault-mirror status` every ten seconds or so until a line starts `In step: yes`. Until then it says "A sync is running" with a percent and the time left. In the first moments a search can answer "Nothing is indexed yet." Do not start a second sync; wait and ask `status` again.
@@ -96,10 +96,10 @@ You need Node 20 or newer (`node -v`) and git (`git --version`).
 **1. Install.**
 
 ```bash
-npm install -g github:HeroForgeAI/vault-mirror#v0.1.0
+npm install -g github:HeroForgeAI/vault-mirror#v0.1.1
 ```
 
-Check it: `vault-mirror --version` prints `0.1.0`. npm also prints a funding note; ignore it.
+Check it: `vault-mirror --version` prints `0.1.1`. npm also prints a funding note; ignore it.
 
 **2. Point it at one vault.** Run this from the folder your AI works in, with your vault's folder between the quotes. `init` adds one rule block to `CLAUDE.md` and `AGENTS.md` in the folder you run it from, so your AI knows to search the index first. It writes nothing in the vault.
 
@@ -369,7 +369,7 @@ A few hundred notes take a few minutes. A very large vault of about two thousand
 <details>
 <summary><b>What in a note is read?</b></summary>
 
-Only `.md` files. Links and embeds are turned into the words a reader would see, and aliases in a note's properties are searchable by meaning. Query blocks such as dataview and mermaid are dropped. Images, PDFs and `.canvas` files are counted and never read. The reading model was trained on English; other languages are not yet tested.
+Only `.md` files. Links and embeds are turned into the words a reader would see, and aliases in a note's properties are searchable by meaning. Query blocks such as dataview and mermaid are dropped. Images, PDFs and `.canvas` files are counted and never read. The reading model was trained on English; other languages are not yet tested. A note written entirely in a language without spaces between words (Japanese, for example) is counted as empty and left out; `status --list` names it.
 
 </details>
 
@@ -410,13 +410,30 @@ Run `vault-mirror doctor`. Every message the tool prints is one plain sentence a
 
 ## Where it stands
 
-Version 0.1.0. **macOS (Apple Silicon): tested. Windows and Linux: in testing** on [CI](https://github.com/HeroForgeAI/vault-mirror/actions/workflows/ci.yml), where the unit tests do not pass yet. Intel Macs are not yet verified.
+Version 0.1.1. **Tested on macOS (Apple Silicon), Windows (x64) and Linux (x64)**, on GitHub's hosted machines in [CI](https://github.com/HeroForgeAI/vault-mirror/actions/workflows/ci.yml). Intel Macs, Windows on ARM and Linux on ARM are not yet verified.
 
-On the Mac it passes its unit suite and a 34-step acceptance script that includes the read-only checks, a `kill -9` in the middle of a sync, and two syncs racing. Windows on ARM and musl Linux have no native ruvector build, so a built-in exact engine takes over there and says so.
+"Tested" means three things ran on each system and passed. The unit suite, on Node 20, 22 and 24. A first run as a new user has it, on Node 20, 22 and 24: install with the line above, then `doctor`, `init`, `sync`, `status`, `search`, an edit, a delete and `rebuild`, on a vault whose path has a space and whose notes have accented and Japanese names. And a 34-step acceptance script that includes the read-only checks, a forced stop in the middle of a sync, and two syncs racing. After every command a checksum listing of the vault is compared: no file in it changed. Windows cannot send Ctrl+C from one program to another, so that one step is skipped there and says so; a forced stop is tested on all three.
+
+The largest vault run on Windows and Linux so far has about 170 notes; the larger runs in [docs/BENCHMARKS.md](docs/BENCHMARKS.md) are from one Mac. Windows on ARM and musl Linux have no native ruvector build, so a built-in exact engine takes over there and says so; neither has been run.
+
+### On Windows
+
+What CI runs on GitHub's hosted Windows machines (x64), and passes:
+
+- **Shells.** The install line works as written in PowerShell and in the command prompt (cmd), and `vault-mirror` is found afterwards in both and in Git Bash, with the right exit codes.
+- **Where the index lives.** `C:\Users\<you>\.vault-mirror`, outside the vault. Set `VAULT_MIRROR_HOME` to put it elsewhere. `vault-mirror rebuild --full --yes` makes it again from your notes.
+- **Vault paths.** Spaces and parentheses in the path are fine, and so is a vault inside a folder named like `OneDrive - Company`. `init` says so when the vault is in a folder that may sync to the cloud; the index stays on your computer.
+- **Note names.** Accents, Japanese and emoji. Ids use forward slashes on every system; the `path` in a result is a Windows path that opens, including for an accented name that came from a Mac.
+- **Long paths.** A note at a path longer than 260 characters is read and found. Some Windows programs cannot open so long a path unless long paths are turned on in Windows; that is their limit, not this tool's.
+- **Windows line endings** in notes give the same passages and line numbers. A `CLAUDE.md` that uses them keeps them when the rule is added.
+- **A note another program holds** (a virus scanner, an editor) is skipped, named in plain words, and `status` says "not yet" until the next sync reads it.
+- **A sync that is stopped by force** leaves the index readable, and the next sync carries on. Two syncs at once never both write.
+
+Not yet tried on Windows, by anyone: OneDrive files that are shown but not downloaded; whether `sync --detach` flashes a window on a real desktop; Ctrl+C in the middle of a sync (one program cannot send it to another, so CI cannot); a vault of more than about 170 notes; and Windows on ARM, where ruvector has no native build and the built-in exact engine is meant to take over.
 
 Planned, with no dates:
 
-- Windows, Intel Macs and Linux verified on CI.
+- Intel Macs, Windows on ARM and Linux on ARM verified.
 - A release on the npm registry, so the install line is short and `npx vault-mirror doctor` works as a first try.
 - A warm mode: an optional helper that keeps the model loaded, so a second search skips the 0.26 s model load. Off by default.
 - Skip the index safety probe when the index file has not changed since the last good open.
@@ -444,7 +461,7 @@ vault-mirror stands on other people's work.
 
 ## Contributing, security, license
 
-**Contributing.** Ideas and fixes are welcome. Everything comes in as a pull request from your own fork, and a maintainer approves it before it merges.<br>
+**Contributing.** Ideas and fixes are welcome. Everything comes in as a pull request from your own fork. Automated checks run on it, and Mak Allen approves it before it merges.<br>
 How to do that, and the lines no change may cross: [CONTRIBUTING.md](CONTRIBUTING.md).<br>
 Who decides, and how releases work: [GOVERNANCE.md](GOVERNANCE.md).
 

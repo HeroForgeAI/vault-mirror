@@ -178,7 +178,7 @@ export async function runSync(ctx, opts, ui) {
       if (quick) {
         const first = await buildPlan({ walk, manifest, shallow: true, read: (abs) => readBytes(abs), stat: (abs) => stat(abs), chunk: () => { throw new Error('unused'); } });
         const waitingNotes = first.pending.new + first.pending.changed + first.pending.removed;
-        if (waitingNotes === 0 && manifest.sidecar.deadRecords === 0) return { deferred: false, nothing: true, plan: first };
+        if (waitingNotes === 0 && first.respelled.length === 0 && manifest.sidecar.deadRecords === 0) return { deferred: false, nothing: true, plan: first };
         if (waitingNotes > /** @type {number} */ (opts.quickMaxPassages)) return { deferred: true, waiting: waitingNotes };
       }
       const plan = await buildPlan({
@@ -231,6 +231,7 @@ export async function runSync(ctx, opts, ui) {
       };
 
       for (const t of plan.touched) { Object.assign(manifest.notes[t.key], { size: t.size, mtimeMs: t.mtimeMs, racy: t.racy }); bookkeeping = true; }
+      for (const r of plan.respelled) { const e = manifest.notes[r.key]; if (r.file === r.key) delete e.file; else e.file = r.file; bookkeeping = true; }
       if (JSON.stringify(manifest.leftOut) !== JSON.stringify(plan.leftOutKept)) { manifest.leftOut = plan.leftOutKept; bookkeeping = true; }
 
       if (work > 0) {
@@ -292,7 +293,7 @@ export async function runSync(ctx, opts, ui) {
                 good.forEach((note, k) => {
                   const old = manifest.notes[note.key];
                   if (old) { manifest.sidecar.deadRecords++; for (let p = 0; p < old.passages; p++) removeIds.push(passageId(note.key, p)); }
-                  manifest.notes[note.key] = { sha256: note.sha256, size: note.size, mtimeMs: note.mtimeMs, racy: note.racy, passages: note.passages.length, folderInPrefix: note.folderInPrefix, log: where[k].log, vec: where[k].vec, flagged: puts[k].record.passages.filter((p) => p.flags.length).length };
+                  manifest.notes[note.key] = { sha256: note.sha256, size: note.size, mtimeMs: note.mtimeMs, racy: note.racy, passages: note.passages.length, folderInPrefix: note.folderInPrefix, log: where[k].log, vec: where[k].vec, flagged: puts[k].record.passages.filter((p) => p.flags.length).length, ...(note.file !== note.key ? { file: note.file } : {}) };
                   if (addRows) puts[k].vectors.forEach((vec, p) => /** @type {import('../engine/engine.js').Row[]} */ (addRows).push({ id: passageId(note.key, p), vector: vec }));
                 });
                 manifest.sidecar.logBytes = side.logBytes; manifest.sidecar.vectors = side.vectors;

@@ -44,13 +44,13 @@ async function firstRun(fakeFetch, run, savingMs = 0) {
 }
 
 /** A body of `chunks` two-megabyte pieces, one every `gapMs`. It never ends when `thenHang` is set. */
-function slowBody(/** @type {number} */ chunks, /** @type {number} */ gapMs, thenHang = false) {
+function slowBody(/** @type {number} */ chunks, /** @type {number} */ gapMs, thenHang = false, /** @type {number[]} */ sentAt = []) {
   let sent = 0;
   return new ReadableStream({
     async pull(controller) {
       if (sent === chunks) { if (thenHang) await new Promise(() => {}); controller.close(); return; }
       await sleep(gapMs);
-      controller.enqueue(new Uint8Array(PIECE)); sent++;
+      controller.enqueue(new Uint8Array(PIECE)); sent++; sentAt.push(Date.now());
     },
   });
 }
@@ -58,15 +58,29 @@ function slowBody(/** @type {number} */ chunks, /** @type {number} */ gapMs, the
 test('a slow download that keeps arriving is never stopped, and says how far it is', async () => {
   // Twelve pieces, 100 ms apart: the transfer takes three times the stall limit, and the model
   // folder stays empty until its very end.
-  await firstRun(async () => new Response(slowBody(12, 100)), async (e, notices) => {
+  /** @type {number[]} */
+  const sentAt = [];
+  await firstRun(async () => new Response(slowBody(12, 100, false, sentAt)), async (e, notices) => {
     assert.equal(e.modelPresent, false);
-    const watchFolder = setInterval(() => { if (!e.modelPresent) assert.ok(!fs.existsSync(modelFiles(entry).model)); }, 20);
-    try { await e.init(); } finally { clearInterval(watchFolder); }
+    // When this fails, say what the clock saw: when each piece left, and the longest the process went without running a timer.
+    const started = Date.now(); let lastTick = started; let longestGap = 0;
+    const watchFolder = setInterval(() => { longestGap = Math.max(longestGap, Date.now() - lastTick); lastTick = Date.now(); if (!e.modelPresent) assert.ok(!fs.existsSync(modelFiles(entry).model)); }, 20);
+    try { await e.init(); } catch (err) { /** @type {any} */ (err).message += ` [pieces left at ${sentAt.map((t) => t - started).join(', ')} ms; stopped at ${Date.now() - started} ms; longest gap between 20 ms ticks ${longestGap} ms; notices ${JSON.stringify(notices)}]`; throw err; } finally { clearInterval(watchFolder); }
     assert.equal(e.modelPresent, true);
     assert.equal(fs.statSync(modelFiles(entry).model).size, 12 * PIECE, 'every byte reached the library unchanged');
     assert.match(notices[0], /^Downloading the reading model once \(about \d+ MB\)\./);
     const progress = notices.filter((l) => /^Downloaded \d+ MB so far\.$/.test(l));
     assert.deepEqual(progress.map((l) => Number(/\d+/.exec(l))).map((mb) => mb >= 10), [true, true], `a line about every 10 MB: ${JSON.stringify(notices)}`);
+  });
+});
+
+test('time when this process was not running (a frozen process, a laptop asleep) is not counted as a stalled download', async () => {
+  // The first piece is due at 300 ms. The process is held from 30 ms for one and a half stall limits, so the
+  // watchdog's next look comes late, with nothing received yet. That silence was ours, not the network's.
+  await firstRun(async () => new Response(slowBody(4, 300)), async (e) => {
+    setTimeout(() => { const end = Date.now() + WATCH.stallMs * 1.5; while (Date.now() < end) { /* hold the process */ } }, 30);
+    await e.init();
+    assert.equal(e.modelPresent, true);
   });
 });
 

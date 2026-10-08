@@ -156,6 +156,21 @@ test('a new file that fails its self-test is removed and never used; the exact e
   assert.equal(noNative.notices.length, 1, 'announced in one line');
 });
 
+test('where the open file cannot be read (Windows), the answer read before it was opened decides the self-test', async () => {
+  // The create step reports `flat` itself. The self-test must use that answer and must not try to read the file.
+  const seen = [];
+  const run = async (/** @type {boolean} */ flat) => {
+    const s = setup();
+    return ensureEngine({ indexDir: s.indexDir, loaded: s.loaded, dimensions: DIMS, deps: { ...s.deps,
+      create: async (file) => ({ engine: memoryEngine(), storagePath: file, flat }),
+      selfTest: async (_engine, _dims, check) => { seen.push(typeof check === 'function' ? check() : check); if (typeof check === 'function' && !check()) throw Object.assign(new Error('not flat'), { code: 'VM_E_ENGINE_NOT_FLAT' }); } } });
+  };
+  assert.notEqual((await run(true)).how, 'exact', 'a file read as flat is used');
+  const no = await run(false);
+  assert.equal(no.how, 'exact'); assert.deepEqual(no.warnings, ['VM_E_ENGINE_NOT_FLAT']);
+  assert.deepEqual(seen, [true, false], 'the self-test was handed the answer, not a path to read');
+});
+
 test('applying just the changed notes when the engine sits at the previous stamp', async () => {
   const s = setup();
   await ensureEngine({ indexDir: s.indexDir, loaded: s.loaded, dimensions: DIMS, deps: s.deps, quiet: true });

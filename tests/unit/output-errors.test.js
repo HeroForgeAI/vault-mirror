@@ -63,6 +63,15 @@ test('plain numbers and durations', () => {
   assert.equal(duration(0.097), '0.1 s');
   assert.equal(duration(490), '8 min 10 s');
   assert.equal(duration(62), '1 min 2 s');
+  assert.equal(duration(120), '2 min');
+  assert.equal(duration(3600), '1 h 0 min');
+  assert.equal(duration(3660), '1 h 1 min');
+  assert.equal(duration(7320), '2 h 2 min');
+  assert.equal(eta(1), 'about 5 s left');
+  assert.equal(eta(12), 'about 10 s left');
+  assert.equal(eta(13), 'about 15 s left');
+  assert.equal(eta(49), 'about 50 s left');
+  assert.equal(eta(50), 'about 1 min left');
   assert.equal(eta(300), 'about 5 min left');
   assert.equal(plural(1, 'note'), '1 note');
   assert.equal(plural(1240, 'note'), '1,240 notes');
@@ -76,7 +85,7 @@ test('--json prints exactly one object and nothing else, also for an error', () 
   const lines = r.stdout.trim().split('\n');
   assert.equal(lines.length, 1);
   const body = JSON.parse(lines[0]);
-  assert.deepEqual([body.schema, body.ok, body.command, body.version, body.error.code, body.error.exitCode], [1, false, 'status', '0.1.0', 'VM_E_NO_VAULT', 2]);
+  assert.deepEqual([body.schema, body.ok, body.command, body.version, body.error.code, body.error.exitCode], [1, false, 'status', '0.1.1', 'VM_E_NO_VAULT', 2]);
   assert.ok(body.error.message && body.error.next && Array.isArray(body.warnings));
 });
 
@@ -101,7 +110,7 @@ test('--help lists exactly the six commands and makes no saving claim', () => {
   const commands = r.stdout.split('Commands:')[1].split('Options for every command:')[0].trim().split('\n').map((l) => l.trim().split(/\s+/)[0]);
   assert.deepEqual(commands, ['init', 'sync', 'search', 'status', 'rebuild', 'doctor']);
   assert.ok(!/times less|x fewer|instant|hybrid/i.test(r.stdout));
-  assert.equal(run(['--version']).stdout, '0.1.0\n');
+  assert.equal(run(['--version']).stdout, '0.1.1\n');
 });
 
 test('full rebuild rejects invalid workers like sync, before starting an index', () => {

@@ -361,3 +361,30 @@ test('the search path takes a ready embedder and a ready index, and returns both
   assert.deepEqual(without.results, r.results, 'the exact-words list never changes the list by meaning');
   assert.equal(embedded, 1 + 1 + 3 + 1, 'one embedding per wording, nothing else loaded');
 });
+
+test('a result path is the name as the disk spells it; the id and the link keep the one spelling', async () => {
+  // The key is composed (NFC) with ordinary spaces. On disk the folder and the file hold a decomposed accent and a no-break space.
+  const key = 'Résumés/Café\u00a0notes.md'.normalize('NFC').replace(/\u00a0/g, ' ');
+  const file = 'Re\u0301sume\u0301s/Cafe\u0301\u00a0notes.md';
+  assert.notEqual(key, file);
+  const s = indexOf({ [key]: rec('Café notes', ['The heliotrope accordion is on the top shelf.']), 'Plain.md': rec('Plain', ['Something else entirely.']) });
+  s.manifest.notes[key].file = file;
+  const all = new Float32Array(s.manifest.sidecar.vectors * DIMS);
+  /** @type {string[]} */
+  const ids = [];
+  for (const [k, e] of Object.entries(s.manifest.notes)) { all.set([1, 0, 0, 0], e.vec * DIMS); ids[e.vec] = passageId(k, 0); }
+  const embedder = /** @type {any} */ ({ embedQuery: async () => Float32Array.from([1, 0, 0, 0]) });
+  const vault = path.join(tmpDir('spelled'), 'v');
+  const r = await searchReady({ embedder, engine: createExact(all, (i) => ids[i], DIMS), manifest: s.manifest, dataDir: s.dataDir, words: wordsFor(s.indexDir, s, {}).table }, { count: 1, vaultPath: vault, vaultParam: 'v', queries: ['where is the "heliotrope accordion"'] });
+  const byPath = Object.fromEntries([...r.results, ...r.exactWords].map((x) => [x.vaultPath, x]));
+  for (const x of [...r.results, ...r.exactWords].filter((y) => y.vaultPath === key)) {
+    assert.equal(x.path, path.join(vault, 'Re\u0301sume\u0301s', 'Cafe\u0301\u00a0notes.md'), 'the path an agent opens');
+    assert.equal(x.passage, `${key}#0`, 'the id');
+    assert.equal(new URL(String(x.link)).searchParams.get('file')?.split('#')[0], key, 'the link');
+  }
+  assert.ok(byPath[key], 'the respelled note is among the results');
+  // A file made from that path opens: the proof on a disk that tells the two forms apart.
+  fs.mkdirSync(path.dirname(byPath[key].path), { recursive: true }); fs.writeFileSync(path.join(vault, ...file.split('/')), 'x');
+  assert.ok(fs.readdirSync(path.dirname(byPath[key].path)).includes(path.basename(byPath[key].path)), 'the name is one the folder really lists');
+  if (byPath['Plain.md']) assert.equal(byPath['Plain.md'].path, path.join(vault, 'Plain.md'), 'a name the key does not respell is built from the key, as before');
+});

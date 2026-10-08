@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { makeFiller, makeReadmes, makeOddNames, ODD_BODIES } from '../helpers/make-notes.mjs';
+import { makeFiller, makeReadmes, makeOddNames, ODD_NAMES, ODD_BODIES } from '../helpers/make-notes.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '..', '..');
@@ -25,21 +25,25 @@ const { values: opt } = parseArgs({ options: {
 if (!opt.vault) { console.error('Usage: node tests/acceptance/run.mjs --vault <dir> [--questions <file>] [--read-only-vault]'); process.exit(2); }
 const BIN = opt.bin ? path.resolve(opt.bin) : path.join(REPO, 'bin', 'vault-mirror.js');
 const READ_ONLY = Boolean(opt['read-only-vault']);
+// Windows cannot send Ctrl+C, a pause or a resume to another process, so the steps that need one say so and are skipped there.
+const WIN = process.platform === 'win32';
 const LIVE_STEPS = [1, 2, 3, 4, 5, 13, 17, 18, 19, 21, 22, 24, 25];
 const only = opt.only ? new Set(opt.only.split(',').map(Number)) : READ_ONLY ? new Set(LIVE_STEPS) : null;
 const wants = (/** @type {number} */ n) => !only || only.has(n);
 
-const base = fs.realpathSync(fs.mkdtempSync(path.join((() => { const b = process.env.VAULT_MIRROR_TEST_TMP || os.tmpdir(); fs.mkdirSync(b, { recursive: true }); return b; })(), 'vm-accept-')));
+const base = fs.realpathSync.native(fs.mkdtempSync(path.join((() => { const b = process.env.VAULT_MIRROR_TEST_TMP || os.tmpdir(); fs.mkdirSync(b, { recursive: true }); return b; })(), 'vm-accept-')));
 const CWD = path.join(base, 'cwd'); const PROJECT = path.join(base, 'project'); const OBS_JSON = path.join(base, 'obsidian.json');
 fs.mkdirSync(CWD); fs.mkdirSync(PROJECT);
-const sourceVault = fs.realpathSync(path.resolve(opt.vault));
+const sourceVault = fs.realpathSync.native(path.resolve(opt.vault));
 let VAULT = sourceVault;
+/** The odd-named notes this system could hold (Windows refuses names with ? " | and :). @type {string[]} */
+let oddWritten = [];
 if (!READ_ONLY) {
   VAULT = path.join(base, 'vault');
   try { execFileSync('cp', ['-cR', sourceVault, VAULT]); } catch { fs.cpSync(sourceVault, VAULT, { recursive: true }); }
   makeFiller(VAULT, Number(opt.filler));
   makeReadmes(VAULT);
-  makeOddNames(VAULT);
+  oddWritten = makeOddNames(VAULT);
   fs.writeFileSync(OBS_JSON, JSON.stringify({ vaults: { a1b2c3d4e5f60718: { path: VAULT, ts: 1, open: true } } }));
 }
 const home = (/** @type {string} */ name) => path.join(base, `home-${name}`);
@@ -48,6 +52,8 @@ const MAIN = home('main');
 // ---------- helpers ----------
 /** @type {{ n: number | string, name: string, ok: boolean, detail: string, seconds: number }[]} */
 const results = [];
+/** @type {{ n: number | string, name: string, why: string }[]} */
+const skipped = [];
 const timings = {};
 const notes = [];
 const sleep = (/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms));
@@ -131,8 +137,25 @@ function grep(/** @type {string} */ dir, /** @type {string} */ needle) {
 }
 /** Processes still alive whose command line mentions this run's temp folder. */
 function leftoverProcesses() {
-  const out = spawnSync('ps', ['-axo', 'pid=,command='], { encoding: 'utf8' }).stdout;
-  return out.split('\n').filter((l) => l.includes(base) && !l.includes('run.mjs') && !/\bps -axo\b/.test(l)).map((l) => l.trim().slice(0, 160));
+  const out = WIN
+    ? spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', 'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.CommandLine)" }'], { encoding: 'utf8' }).stdout || ''
+    : spawnSync('ps', ['-axo', 'pid=,command='], { encoding: 'utf8' }).stdout;
+  return out.split(/\r?\n/).filter((l) => l.includes(base) && !l.includes('run.mjs') && !/\bps -axo\b/.test(l) && !l.includes('Get-CimInstance')).map((l) => l.trim().slice(0, 160));
+}
+/** Make every file and folder under a root read-only, or writable again. */
+function setWritable(/** @type {string} */ root, /** @type {boolean} */ writable) {
+  const all = [root]; const dirs = [root];
+  while (dirs.length) { const d = /** @type {string} */ (dirs.pop()); for (const e of fs.readdirSync(d, { withFileTypes: true })) { const abs = path.join(d, e.name); if (e.isSymbolicLink()) continue; all.push(abs); if (e.isDirectory()) dirs.push(abs); } }
+  // Folders last when taking the right away, first when giving it back.
+  for (const abs of writable ? all : all.reverse()) { const mode = fs.statSync(abs).mode & 0o777; fs.chmodSync(abs, writable ? mode | 0o200 : mode & ~0o222); }
+}
+/** A --require option for NODE_OPTIONS that survives spaces and backslashes in the path. */
+const requireOption = (/** @type {string} */ file) => `--require "${file.replace(/\\/g, '\\\\')}"`;
+/** Record a step this system cannot run, with the reason. It is listed apart from the passes. */
+function skipStep(/** @type {number | string} */ n, /** @type {string} */ name, /** @type {string} */ why) {
+  if (typeof n === 'number' && !wants(n)) return;
+  skipped.push({ n, name, why });
+  console.log(`SKIP ${String(n).padStart(3)}  ${name}  [${why}]`);
 }
 function lockHeld(/** @type {string} */ h) {
   const dir = readIndex(h).dir;
@@ -403,7 +426,9 @@ await step(14, 'kill -9 a fresh first sync mid-run, then sync again', async () =
   const saved = await waitForPassages(h, 40);
   process.kill(run.pid, 'SIGKILL');
   const s = /** @type {any} */ (await run.done);
-  eq(s.signal, 'SIGKILL', 'the first run was killed');
+  // Windows ends the process without naming a signal: it reports a failed exit instead.
+  if (WIN) assert(s.signal === 'SIGKILL' || s.status !== 0, `the first run was killed (exit ${s.status}, signal ${s.signal})`);
+  else eq(s.signal, 'SIGKILL', 'the first run was killed');
   await sleep(300);
   const want = readIndex(MAIN).manifest.totals;
   const again = vm(['sync', '--json'], { home: h });
@@ -417,7 +442,8 @@ await step(14, 'kill -9 a fresh first sync mid-run, then sync again', async () =
   return `killed with ${saved}+ passages saved; second run embedded ${again.json.passages.embedded} of ${want.passages}`;
 });
 
-await step(15, 'SIGINT mid-sync', async () => {
+if (WIN) skipStep(15, 'SIGINT mid-sync', 'Windows cannot send Ctrl+C to another process; a forced stop is step 14');
+else await step(15, 'SIGINT mid-sync', async () => {
   const h = home('sigint');
   vm(['init', VAULT, '--no-rule', '--json'], { home: h });
   const run = vmStart(['sync'], { home: h });
@@ -448,6 +474,7 @@ await step(16, 'two syncs at once; and a sync paused with SIGSTOP', async () => 
   for (const line of fs.readFileSync(path.join(idx.dataDir, 'passages.jsonl'), 'utf8').trim().split('\n').slice(1)) { const rec = JSON.parse(line); assert(!seen.has(rec.path), `duplicate record for a note`); seen.add(rec.path); }
   eq(idx.texts.size, want.passages, 'no duplicate passages');
 
+  if (WIN) { notes.push('step 16: the paused-sync half was not run (Windows cannot pause and resume another process)'); return 'two syncs at once never wrote twice; the paused-sync half is not run on Windows'; }
   const stopSeconds = Number(opt['stop-seconds']);
   const h2 = home('paused');
   vm(['init', VAULT, '--no-rule', '--json'], { home: h2 });
@@ -524,7 +551,7 @@ await step(18, 'delete the engine folder; search', () => {
 
 await step(19, 'fetch disabled, model cached', () => {
   const log = path.join(base, 'nofetch.log'); fs.writeFileSync(log, '');
-  const env = { NODE_OPTIONS: `--require ${path.join(REPO, 'tests', 'helpers', 'nofetch.cjs')}`, VM_NOFETCH_LOG: log };
+  const env = { NODE_OPTIONS: requireOption(path.join(REPO, 'tests', 'helpers', 'nofetch.cjs')), VM_NOFETCH_LOG: log };
   const h = READ_ONLY ? MAIN : home('offline');
   if (!READ_ONLY) vm(['init', VAULT, '--no-rule', '--json'], { home: h, env });
   const s = vm(['sync', '--json'], { home: h, env });
@@ -644,7 +671,7 @@ await step(23, 'cut the live engine file to half its length; search', () => {
 await step(24, 'commands return and leave nothing behind', () => {
   const parts = [];
   for (const [label, s] of /** @type {[string, any][]} */ ([['after a full sync with the pool', afterFullSync], ['after a sync stopped by SIGINT', afterSigint]])) {
-    if (!s) { if (READ_ONLY && label.includes('SIGINT')) continue; throw new Error(`no measurement ${label} (did step ${label.includes('SIGINT') ? 15 : 3} run?)`); }
+    if (!s) { if ((READ_ONLY || WIN) && label.includes('SIGINT')) continue; throw new Error(`no measurement ${label} (did step ${label.includes('SIGINT') ? 15 : 3} run?)`); }
     assert(s.lastLineToExitMs < 5000, `${label}: returned ${s.lastLineToExitMs} ms after its last line`);
     eq(s.leftovers.join(' | '), '', `${label}: processes still alive`);
     eq(s.locks.join(','), '', `${label}: locks held by a live process`);
@@ -658,21 +685,21 @@ await step(24, 'commands return and leave nothing behind', () => {
 
 await step('R1', 'read-only vault: chmod -R a-w, then the full command set', () => {
   const ro = path.join(base, 'vault-readonly'); const h = home('readonly');
-  execFileSync('cp', ['-R', path.join(REPO, 'tests', 'fixtures', 'vault'), ro]);
-  execFileSync('chmod', ['-R', 'a-w', ro]);
+  fs.cpSync(path.join(REPO, 'tests', 'fixtures', 'vault'), ro, { recursive: true });
+  setWritable(ro, false);
   const before = snapshot(ro);
   try {
     const run = (/** @type {string[]} */ args) => { const r = spawnSync(process.execPath, [BIN, ...args], { cwd: CWD, env: envFor(h), encoding: 'utf8' }); eq(r.status, 0, `vault-mirror ${args[0]} on a read-only vault (${r.stderr.slice(0, 200)})`); return r; };
     run(['init', ro, '--no-rule']); run(['sync']); run(['sync']); run(['search', 'when to plant tomatoes']); run(['status']); run(['status', '--verify']); run(['rebuild']); run(['doctor']);
     const after = snapshot(ro);
     eq(JSON.stringify([...after]), JSON.stringify([...before]), 'the read-only copy is byte-for-byte unchanged');
-  } finally { execFileSync('chmod', ['-R', 'u+w', ro]); }
+  } finally { setWritable(ro, true); }
   return 'init, sync, search, status, rebuild and doctor all ran';
 });
 
 await step('R2', 'spy: no fs write call ever targets a vault path', () => {
   const log = path.join(base, 'spy.log'); fs.writeFileSync(log, ''); const h = home('spy');
-  const env = { NODE_OPTIONS: `--require ${path.join(REPO, 'tests', 'helpers', 'fs-spy.cjs')}`, VM_SPY_ROOT: VAULT, VM_SPY_LOG: log };
+  const env = { NODE_OPTIONS: requireOption(path.join(REPO, 'tests', 'helpers', 'fs-spy.cjs')), VM_SPY_ROOT: VAULT, VM_SPY_LOG: log };
   for (const args of [['init', VAULT, '--project', PROJECT], ['sync', '--workers', '2'], ['sync'], ['search', 'watering'], ['status', '--verify'], ['status', '--list', '--screen'], ['rebuild'], ['rebuild', '--full', '--yes'], ['doctor']]) {
     const r = vm(args, { home: h, env });
     eq(r.status, 0, `vault-mirror ${args[0]} under the spy (${r.stderr.slice(0, 200)})`);
@@ -719,17 +746,42 @@ await step('S1', 'the screen reports, masks and never drops a passage', () => {
 
 await step('S2', 'odd file names: ids, paths and links round-trip', () => {
   const idx = readIndex(MAIN); const keys = Object.keys(idx.manifest.notes).filter((k) => k.startsWith('Odd/'));
-  assert(keys.length >= 4, `odd-named notes indexed: ${keys.length}`);
-  for (const key of keys) assert(fs.existsSync(path.join(VAULT, ...key.normalize('NFC').split('/'))) || fs.existsSync(path.join(VAULT, ...key.normalize('NFD').split('/'))), `the manifest key opens a real file`);
-  const r = vm(['search', ODD_BODIES[0], '--json', '-k', '5']);
-  const hit = r.json.results.find((/** @type {any} */ x) => x.vaultPath.startsWith('Odd/Why & how'));
-  assert(hit, 'the note with punctuation in its name is found');
+  eq(keys.length, oddWritten.length, `odd-named notes indexed, of the ${oddWritten.length} this system could hold (indexed: ${keys.join(' | ')}; written: ${oddWritten.join(' | ')})`);
+  assert(keys.length >= (WIN ? 2 : 4), `odd-named notes indexed: ${keys.length}`);
+  // The key is one spelling for every form of a name. The name as the disk spells it is kept beside it, and is what opens the file.
+  const listed = (/** @type {string} */ p) => fs.readdirSync(path.dirname(p)).includes(path.basename(p));
+  for (const key of keys) assert(listed(path.join(VAULT, ...(idx.manifest.notes[key].file ?? key).split('/'))), `the name kept for ${key} is one its folder lists`);
+  const accented = keys.find((k) => k.startsWith('Odd/Caf'));
+  assert(accented && idx.manifest.notes[accented].file === `Odd/${ODD_NAMES[2]}` && accented !== `Odd/${ODD_NAMES[2]}`, 'a name with a separate accent mark is kept as written, beside a key in the one spelling');
+  // The first odd name this system could hold: the one full of punctuation on macOS and Linux, the one with an accent and an emoji on Windows.
+  const which = ODD_NAMES.findIndex((name) => oddWritten.includes(path.join('Odd', name)));
+  assert(which >= 0, 'no odd-named note could be written at all');
+  const stem = ODD_NAMES[which].slice(0, 9).normalize('NFC');
+  const r = vm(['search', ODD_BODIES[which], '--json', '-k', '5']);
+  const hit = r.json.results.find((/** @type {any} */ x) => x.vaultPath.startsWith(`Odd/${stem}`));
+  assert(hit, 'the note with an odd name is found');
   assert(fs.existsSync(hit.path), 'path opens the file');
   const file = new URL(hit.link).searchParams.get('file');
-  eq(file, `${hit.vaultPath}#Odd name 0`, 'the link decodes back to the vault path and heading');
+  eq(file, `${hit.vaultPath}#Odd name ${which}`, 'the link decodes back to the vault path and heading');
+  // The note whose name holds a separate accent mark, on every system: the path is the folder's own spelling of it.
+  const acc = vm(['search', ODD_BODIES[2], '--json', '-k', '5']).json.results.find((/** @type {any} */ x) => x.vaultPath === accented);
+  assert(acc, 'the note with a separate accent mark is found');
+  assert(fs.existsSync(acc.path) && listed(acc.path), `its path opens the file, by the name its folder lists: ${acc.path}`);
+  eq(fs.readFileSync(acc.path, 'utf8').includes(ODD_BODIES[2]), true, 'and that file is the note');
+  // An index made before the name was kept (0.1.0): the next search's own quick sync notes it, and no note is read again.
+  const old = JSON.parse(JSON.stringify(idx.manifest)); for (const key of keys) delete old.notes[key].file;
+  fs.writeFileSync(path.join(idx.dataDir, 'manifest.json'), JSON.stringify(old));
+  const up = vm(['search', ODD_BODIES[2], '--json', '-k', '5']);
+  const again = up.json.results.find((/** @type {any} */ x) => x.vaultPath === accented);
+  assert(again && listed(again.path), `after an upgrade the path is the name the folder lists: ${again?.path}`);
+  const now = readIndex(MAIN);
+  eq(now.manifest.notes[accented].file, `Odd/${ODD_NAMES[2]}`, 'the name is in the index again');
+  eq(now.manifest.stamp, idx.manifest.stamp, 'and no passage was made again');
   assert(!/[!'()*]/.test(hit.link.split('file=')[1]), 'strictly encoded');
-  const spaced = keys.find((k) => k.includes('Trailing space / Leading space.md'));
-  assert(spaced, 'path segments are never trimmed');
+  if (oddWritten.includes(path.join('Odd', 'Trailing space ', ' Leading space.md'))) {
+    const spaced = keys.find((k) => k.includes('Trailing space / Leading space.md'));
+    assert(spaced, 'path segments are never trimmed');
+  }
   return `${keys.length} odd-named notes round-trip`;
 });
 
@@ -854,7 +906,7 @@ await step(25, 'after the whole run', () => {
 
 // ---------- summary ----------
 const failed = results.filter((r) => !r.ok);
-console.log(`\n${results.length - failed.length} of ${results.length} steps passed${failed.length ? `; FAILED: ${failed.map((f) => f.n).join(', ')}` : ''}.`);
+console.log(`\n${results.length - failed.length} of ${results.length} steps passed${failed.length ? `; FAILED: ${failed.map((f) => f.n).join(', ')}` : ''}${skipped.length ? `; not run on ${process.platform}: ${skipped.map((s) => s.n).join(', ')}` : ''}.`);
 console.log(`Timings: ${JSON.stringify({ ...timings, searchQuality: timings.searchQuality ? { top3: timings.searchQuality.top3, of: timings.searchQuality.of, agree: timings.searchQuality.agree } : undefined })}`);
 for (const n of notes) console.log(n);
 if (opt.keep) console.log(`Kept: ${base}`); else { try { fs.rmSync(base, { recursive: true, force: true }); } catch { console.log(`Could not remove ${base}`); } }

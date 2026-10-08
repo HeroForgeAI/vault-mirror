@@ -19,7 +19,8 @@ export function startDetached(indexDir, args) {
   const out = openAppend(outFile);
   const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'vault-mirror.js');
   try {
-    const child = spawn(process.execPath, [bin, 'sync', ...args], { detached: true, stdio: ['ignore', out.fd, out.fd], env: process.env });
+    // windowsHide: on Windows a detached process would otherwise open a console window of its own.
+    const child = spawn(process.execPath, [bin, 'sync', ...args], { detached: true, windowsHide: true, stdio: ['ignore', out.fd, out.fd], env: process.env });
     child.unref();
     return { pid: child.pid, outFile };
   } finally { out.close(); }

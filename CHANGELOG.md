@@ -6,15 +6,42 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-08
+
+vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still only ever read. Upgrading reads no note again: nothing changed in how notes are cut or read, and an index made by 0.1.0 is kept.
+
 ### Fixed
 
+- Windows and Linux: the file path in a search result now opens for a note whose name holds an accent stored as a plain letter plus a separate accent mark (the usual form for names made on a Mac, kept when a vault is copied or synced to another system), or a no-break space. The index knows every note by one spelling of its name, and the path was built from that spelling; a Mac opens either spelling, Windows and Linux open only the one on disk. The name as the disk spells it is now kept beside it and used for the path. Such a note was always indexed and found, with its full text; only the path was wrong. No note is read again: the next `sync`, or the quick sync a `search` runs first, adds the name to an existing index. Until then a `search --no-sync` on an index made by 0.1.0 still shows the old path for such a note.
+- `init` on a disk that tells letter case apart (most Linux disks): the templates folder that Obsidian's own setting names is now left out when the setting spells it in another letter case, as every other `exclude` entry already was.
+- `sync` on a computer with one reader (under 8 GB of memory, or two cores): Ctrl+C now stops it at the next passage. Before, it was not noticed until the sync had finished.
+- The first-run download: time when the computer was asleep or the process was held up is no longer counted as "no data arriving", so a slow download is not given up on by mistake.
+- Windows: the fast engine is now used. The check that a new index is the exact kind read the index file while the engine had it open, which Windows does not allow, so every command fell back to the built-in exact search and `doctor` reported "A test index could not be created". The file is now created by a short helper process and read before it is opened. Searches on 0.1.0 were still correct; they used the slower built-in search.
+- `sync --detach` on Windows no longer opens a console window of its own.
+- `init`: a `CLAUDE.md` or `AGENTS.md` whose lines end the Windows way (CRLF) now gets the rule in that form. Before, the rule was added with plain line endings and the file ended up with both kinds.
 - `rebuild --full` rejects invalid `--workers` values with the same usage error as `sync`, before starting to re-read notes.
 - `--workers` now takes `auto` or a whole number only, on `sync` and `rebuild` alike. A fraction, an empty value and forms such as `0x10` or `1e3` used to slip through and are now refused with the same sentence; `rebuild --workers abc` without `--full` is refused too. Builds on the fix GreedyC contributed in [#18](https://github.com/HeroForgeAI/vault-mirror/pull/18).
 
+### Added
+
+- Regression tests for hour-long durations, exact minutes and the short-wait ETA rounding and five-second floor.
+
 ### Changed
 
+- Tests and CI only: the unit tests no longer assume a Mac (typed POSIX paths, Windows short folder names, a signal Windows cannot send, line endings), and the end-to-end acceptance script now also runs on Linux and Windows runners. A new first-run job installs with the README's line on all three systems and Node 20, 22 and 24 (on Windows from PowerShell and from the command prompt, checking the command's exit codes in each), and runs the first commands on a small invented vault: a path with spaces and parentheses inside a OneDrive-style folder, names with accents, Japanese and an emoji, a rename in letter case only, a path of about 500 characters, a note held by another program, and a full rebuild. A failure of the unit tests or the first run on any of the three systems now fails CI. A `.gitattributes` rule keeps text files LF on every system.
+- The index's `manifest.json` may hold one new optional field per note, `file`: the note's name as the disk spells it, written only when it differs from the name the index uses. 0.1.0 ignores it, so going back to 0.1.0 needs no rebuild.
 - README: says who builds and maintains the project (Mak Allen of the HeroForge.AI team) and where to find him on X.
 - Documentation only: a new README first screen with a picture of a real result, a "Set it up" section with steps for a person, steps for an AI and four commands to type by hand, a new demo recording, and a labelled figure of what a search returns. Long reference material moved to `docs/FIRST-RUN.md`, `docs/HOW-IT-WORKS.md` and `docs/COMPARISON.md`. The README now names `~/.ruvector/models/`, where the ruvector library keeps the reading model, in the safety facts and the removal steps. Recall counts are no longer printed in the README; they are in `docs/BENCHMARKS.md`.
+
+### Known limits
+
+- Tested on macOS (Apple Silicon), Windows (x64) and Linux (x64), on GitHub's hosted machines. Intel Macs, Windows on ARM, Linux on ARM, musl Linux (Alpine), WSL and containers are not yet verified.
+- The largest vault run on Windows and Linux has about 170 notes.
+- A note written entirely in a language without spaces between words (for example Japanese) is counted as empty and left out, on every system. `status --list` names it.
+- Windows: one program cannot send Ctrl+C to another, so the acceptance step for Ctrl+C in the middle of a sync is skipped there. A forced stop in the middle of a sync is tested.
+- Windows, not observable on CI: whether `sync --detach` shows a console window on a desktop, and notes that OneDrive shows but has not downloaded.
+- An `obsidian://` link carries the one spelling of a note's name. Whether Obsidian on Windows or Linux opens a note whose name on disk holds a separate accent mark from such a link has not been confirmed by a person. The file path in the same result opens it.
+- The known limits of 0.1.0 below still hold, except its first line.
 
 ## [0.1.0] - 2026-10-07
 
