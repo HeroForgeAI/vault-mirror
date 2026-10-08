@@ -26,7 +26,8 @@ A manifest (the tool's record) holds every note's fingerprint. A second run repo
 - **Two runs queue.** Two small lock files are held until the process exits. There is no stuck lock for a person to delete.
 - **Search is two lists.** By meaning (cosine similarity, best passage per note) and exact words (BM25 over the tool's own passage store). They are never merged into one ranking: one test showed that merging lowers recall on reworded questions.
 - **Gentle by default.** A first sync uses at most 4 readers at below-normal priority. A search never starts the reader pool.
-- **One direct runtime dependency:** `ruvector`, pinned to an exact version with a shrinkwrap. An install adds 162 packages and 67 MB, including prebuilt native binaries for your platform (measured on macOS arm64). No build step, no install script, no YAML library, no argument parser, no test framework.
+- **Two direct runtime dependencies,** each pinned to an exact version with a shrinkwrap: `ruvector`, and `@modelcontextprotocol/server`, the official MCP SDK, which only `vault-mirror mcp` loads. With ruvector alone an install added 162 packages and 67 MB, including prebuilt native binaries for your platform (measured on macOS arm64 for 0.1.0). The SDK adds two packages and about 8 MB. No build step, no install script, no YAML library, no argument parser, no test framework.
+- **The MCP server holds no lock.** It searches the saved vectors with the built-in exact scan and never opens the ruvector file, so a server left open all day keeps no command waiting. The reading model sits in a helper process that stops after five idle minutes, which gives its 0.6 GB back. [docs/MCP.md](MCP.md).
 - **Memory.** A search peaks at 0.71 GB on a small vault and 0.84 GB at 50,000 passages, over the tool's own 0.7 GB budget. `status`, which loads no model, peaks at 0.07 GB; the difference is the model runtime and the open index.
 
 ## What "in step" means

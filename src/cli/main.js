@@ -21,6 +21,7 @@ Commands:
   status                Is my vault in sync?
   rebuild               Rebuild the index from saved passages. Always safe
   doctor                Check that this computer is ready
+  mcp                   Run the MCP server, so an AI app searches with a named tool (mcp --setup shows how to add it)
 
 Options for every command:
   --json       Print one JSON object and nothing else
@@ -34,6 +35,7 @@ sync:     --detach  --workers <n>  --full-speed  --wait <seconds>  --allow-mass-
 search:   -k, --count <n>  --no-sync  --no-exact-words
 status:   --verify  --list  --screen
 rebuild:  --full  --yes
+mcp:      --setup  --home <dir>  --vault <dir>  --idle-minutes <n>
 `;
 
 /** @type {Record<string, any>} */
@@ -58,6 +60,11 @@ export async function main(argv) {
   let exitCode = 0;
   try {
     if (argv.includes('--version') && !command) { process.stdout.write(TOOL_VERSION + '\n'); return finish(0); }
+    if (command === 'mcp') {
+      // Its own options and its own lifetime: it serves until the client closes its end, so there is no exit here.
+      if ((await (await import('./commands/mcp.js')).mcpCommand(argv)).serving) return;
+      return finish(0);
+    }
     if (!command || argv.includes('--help') || command === 'help') { process.stdout.write(HELP); return finish(command || argv.includes('--help') ? 0 : 2); }
     if (!OPTIONS[command]) throw new VmError('VM_E_USAGE', { detail: `"${command}" is not a vault-mirror command.` });
     /** @type {any} */

@@ -339,6 +339,30 @@ step('rebuild --full: the index is made again from the notes, in the same place,
   return `${r.json.passages} passages read again; one data folder`;
 });
 
+// The same index through the MCP server of the copy under test. For an installed copy this is the proof that the
+// MCP SDK came with the install and loads on this system. The vault is checked after it like after any command.
+step('the MCP server starts, lists its three tools, and each one answers', () => {
+  const env = { ...process.env, VAULT_MIRROR_OBSIDIAN_JSON: OBS_JSON, ...(HOME ? { VAULT_MIRROR_HOME: HOME } : {}) };
+  const t = Date.now();
+  const r = spawnSync(process.execPath, [path.join(HERE, 'mcp-smoke.mjs'), BIN, 'who oils the tower mechanism at Michaelmas'], { cwd: base, env, encoding: 'utf8', timeout: 300000 });
+  timings.mcp = Date.now() - t;
+  console.log(`\n$ vault-mirror mcp    [a handshake and one call of each tool, ${timings.mcp} ms]\n  ${r.stdout.trim()}`);
+  checks++;
+  must(snapshot() === expected, 'THE VAULT CHANGED after vault-mirror mcp');
+  /** @type {any} */
+  let o = null;
+  try { o = JSON.parse(r.stdout.trim().split('\n').pop() || ''); } catch { o = null; }
+  must(r.status === 0 && o && !o.failed, `exit ${r.status}: ${(r.stdout + r.stderr).slice(0, 400)}`);
+  must(o.tools.join(',') === 'search_vault,vault_status,sync_index', `tools: ${o.tools}`);
+  must(o.acceptedFields.join(',') === 'query,other_wordings,limit,wait_seconds', `a tool accepts ${o.acceptedFields}`);
+  must(o.search.top && fs.existsSync(o.search.top.path) && fs.readFileSync(o.search.top.path, 'utf8').includes('walnut crank'), `search: ${JSON.stringify(o.search).slice(0, 300)}`);
+  must(o.pathRefused === true, 'a call that passed a path and text was not refused');
+  must(o.status.notesInIndex > 0, `status: ${JSON.stringify(o.status)}`);
+  must(o.sync.finished === true, `sync: ${JSON.stringify(o.sync)}`);
+  must(o.exit === 0 && o.stray.length === 0, `exit ${o.exit}; lines on stdout that are not protocol: ${o.stray.length}`);
+  return `3 tools; search found ${o.search.top.note}; left with exit 0`;
+});
+
 step('doctor at the end', () => {
   const r = vm(['doctor', '--json'], 'doctor at the end');
   vm(['doctor']);

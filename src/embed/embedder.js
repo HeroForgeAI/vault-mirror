@@ -17,7 +17,8 @@ import { loadRuvector } from '../engine/ruvector-loader.js';
  * @property {string} counterName
  * @property {boolean} modelPresent
  * @property {(known?: Partial<import('./model.js').Identity> | null) => import('./model.js').Identity} identity
- * @property {(opts?: { queries?: string[] }) => Promise<void>} init
+ * @property {(opts?: { queries?: string[], pad?: number }) => Promise<void>} init   `pad` fixes the padding for a process that answers many questions
+ * @property {(question: string) => boolean} questionFits   true when the padding this embedder was started with reads the whole question
  * @property {(text: string) => number} countTokens
  * @property {(texts: string[]) => Promise<(Float32Array | null)[]>} embedPassages
  * @property {(text: string) => Promise<Float32Array>} embedQuery
@@ -62,6 +63,7 @@ export function createEmbedder(opts) {
   /** @type {import('./model.js').Identity | null} */
   let id = null;
   let ready = false;
+  let padding = entry.maxLength;
   /** @type {any} */
   let initError = null;
   /** @type {ReturnType<typeof createPool> | null} */
@@ -162,12 +164,14 @@ export function createEmbedder(opts) {
       try {
         if (!lib) lib = loadRuvector();
         let maxLength = entry.maxLength;
-        if (o.queries && o.queries.length && embedder.modelPresent) {
+        if (o.pad && o.pad < maxLength) maxLength = o.pad;
+        else if (o.queries && o.queries.length && embedder.modelPresent) {
           // A question is short. A smaller padding gives the same vector for less work.
           const longest = Math.max(...o.queries.map((q) => embedder.countTokens(entry.queryLead + q)));
           for (const pad of [16, 32, 64]) if (longest + 2 <= pad && pad < maxLength) { maxLength = pad; break; }
         }
         await initWithWatchdog(maxLength);
+        padding = maxLength;
         id = null;
         const now = embedder.identity(); // hash check of both files before first use
         if (now.modelSize < 1024 * 1024) throw new VmError('VM_E_MODEL_BROKEN', { path: modelFiles(entry).dir });
@@ -178,6 +182,8 @@ export function createEmbedder(opts) {
         throw initError;
       }
     },
+
+    questionFits(question) { return padding >= entry.maxLength || embedder.countTokens(entry.queryLead + question) + 2 <= padding; },
 
     countTokens(text) {
       if (!counter) counter = loadCounter(entry);

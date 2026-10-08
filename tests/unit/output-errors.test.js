@@ -23,6 +23,7 @@ test('code, exit and wording table', () => {
   const table = [
     ['VM_E_NO_VAULT', 2, {}, /^No vault is set up yet\.$/, /vault-mirror init "<path to your vault>"/],
     ['VM_E_NOT_ONE_VAULT', 2, { path: '/x' }, /^\/x is not one vault \(it is your home folder, a folder of several vaults, or a folder inside a vault\)\.$/, /vault-mirror init/],
+    ['VM_E_OTHER_VAULT', 2, { want: '/a', have: '/b' }, /^This server is set to the vault at \/a, but the vault set up here is \/b\.$/, /^Run `vault-mirror init "\/a"`, or give each vault its own home folder with `--home`\.$/],
     ['VM_E_NOT_SYNCED', 2, {}, /^Nothing is indexed yet\.$/, /^Run `vault-mirror sync`\.$/],
     ['VM_E_INDEX_IN_VAULT', 2, {}, /must stay outside so your notes are never touched/, /VAULT_MIRROR_HOME/],
     ['VM_E_MANIFEST_NEWER', 2, {}, /made by a newer vault-mirror/, /rebuild --full/],
@@ -34,6 +35,7 @@ test('code, exit and wording table', () => {
     ['VM_E_MODEL_OFFLINE', 5, {}, /download did not get through/, /vault-mirror doctor/],
     ['VM_E_MODEL_BROKEN', 5, { path: '/m' }, /did not finish downloading/, /^Delete the folder \/m, then run `vault-mirror doctor`\.$/],
     ['VM_E_EMBED_FAILING', 5, {}, /What was done is saved\.$/, /vault-mirror doctor/],
+    ['VM_E_READER', 5, {}, /^The reading model stopped before it answered\.$/, /^Try the search again\.$/],
     ['VM_E_DISK_FULL', 5, {}, /Your notes were not touched\.$/, /Free about 500 MB/],
     ['VM_E_BUSY', 6, { percent: 41 }, /^Another sync is still running \(41% done\)\. Nothing is wrong\.$/, /is my vault in sync/],
     ['VM_E_LOCK_LOST', 6, {}, /Nothing is wrong\.$/, /is my vault in sync/],
@@ -107,11 +109,11 @@ test('human errors: one sentence, one next action, no stack trace', () => {
   assert.equal(run(['sync', '/some/path']).status, 2, 'sync takes no path');
 });
 
-test('--help lists exactly the six commands and makes no saving claim', () => {
+test('--help lists exactly the seven commands and makes no saving claim', () => {
   const r = run(['--help']);
   assert.equal(r.status, 0);
   const commands = r.stdout.split('Commands:')[1].split('Options for every command:')[0].trim().split('\n').map((l) => l.trim().split(/\s+/)[0]);
-  assert.deepEqual(commands, ['init', 'sync', 'search', 'status', 'rebuild', 'doctor']);
+  assert.deepEqual(commands, ['init', 'sync', 'search', 'status', 'rebuild', 'doctor', 'mcp']);
   assert.ok(!/times less|x fewer|instant|hybrid/i.test(r.stdout));
   assert.equal(run(['--version']).stdout, '0.1.1\n');
 });
