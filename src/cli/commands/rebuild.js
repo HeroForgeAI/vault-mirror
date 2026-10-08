@@ -11,6 +11,7 @@ import { computeStatus } from '../../status/checks.js';
 import { runSync, printSyncSummary } from '../../sync/run.js';
 import { debug, setLogDir } from '../../log.js';
 import { VmError } from '../../errors.js';
+import { parseWorkers } from '../flags.js';
 import { duration, plural } from '../output.js';
 
 /** @param {string} question */
@@ -45,13 +46,14 @@ export async function remakeWords(indexDir, loaded) {
  * @param {import('../output.js').Ui} ui
  */
 export async function rebuildCommand(args, ui) {
+  // Checked first, with the one check `sync` uses: before the vault is looked for, before the
+  // "go ahead?" question, and whether or not --full was given.
+  const workers = parseWorkers(args.workers);
   const ctx = loadContext({ needVault: true });
   const vault = { name: ctx.vault.name, path: ctx.vault.real };
   setLogDir(path.join(ctx.indexDir, 'logs'));
   const started = Date.now();
   if (args.full) {
-    const workers = args.workers == null ? undefined : args.workers === 'auto' ? 'auto' : Number(args.workers);
-    if (typeof workers === 'number' && (!Number.isFinite(workers) || workers < 0)) throw new VmError('VM_E_USAGE', { detail: '--workers takes a number, for example --workers 2.' });
     if (!args.yes) {
       if (!process.stdin.isTTY || ui.json) throw new VmError('VM_E_USAGE', { detail: 'A full rebuild re-reads every note. To go ahead without being asked, add --yes.' });
       if (!(await confirm('This re-reads every note from scratch. Your notes are not touched. Go ahead? (y/n) '))) { ui.out('Nothing was changed.'); return { vault, body: { mode: 'full', passages: 0, seconds: 0, inStep: false, next: null, cancelled: true } }; }
