@@ -53,7 +53,12 @@ async function syncToEnd(wait) {
   return { first, last };
 }
 
+// A note whose name holds an accent stored as a plain letter plus a separate accent mark. Some disks tell that
+// spelling from the single-letter one, so a result must name the file the way the disk does, or it would not open.
+const ACCENT_NAME = 'Cafe\u0301 visits.md';
+
 test('set up: one vault, nothing synced, and the server started from another folder', async () => {
+  fs.writeFileSync(path.join(vault, 'Travel', ACCENT_NAME), '# Café visits\n\n## Pastel de nata\n\nThe custard tarts near the tram stop are best before ten, while the trays are still warm.\n');
   const init = cli(['init', vault, '--no-rule']);
   assert.equal(init.status, 0, init.stderr);
   // Started in a folder that has nothing to do with the vault or the index: it finds both from the settings file.
@@ -120,6 +125,12 @@ test('every tool, on the fixture vault, with the vault checksummed before and af
   const viaCliMs = json(cli(['search', 'why is the fruit going black underneath', '-k', '1', '--no-sync'])).tookMs;
   t.diagnostic(`search timings on this machine: command ${viaCliMs} ms inside the process (plus its start-up); MCP first search ${cold.out.tookMs} ms; MCP repeat searches ${warm.join(', ')} ms`);
   assert.ok(Math.min(...warm) < cold.out.tookMs, `a repeat search (${Math.min(...warm)} ms) is faster than the first (${cold.out.tookMs} ms)`);
+
+  // A file path in a result is spelled the way the disk spells it, so it opens on every system.
+  const accent = await call('search_vault', { query: 'custard tarts near the tram stop', limit: 1 });
+  assert.equal(accent.out.results[0].heading, 'Pastel de nata');
+  assert.equal(path.basename(accent.out.results[0].path), fs.readdirSync(path.join(vault, 'Travel')).find((n) => n.normalize('NFC') === ACCENT_NAME.normalize('NFC')), 'the name as it is on disk');
+  assert.match(fs.readFileSync(accent.out.results[0].path, 'utf8'), /custard tarts/);
 
   // Several wordings, and the second list.
   const both = await call('search_vault', { query: 'when should I feed the tomatoes', other_wordings: ['tomato fertiliser schedule'], limit: 2 });

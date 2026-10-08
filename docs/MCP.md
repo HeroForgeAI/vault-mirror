@@ -173,7 +173,7 @@ The passages a search returns go to your AI's service, as any file your AI reads
 - **Tidier, not shorter.** The result is structured, with nothing said twice. It is not always less to read. For one search that returned 8 notes and one exact-words passage, the tool's result was 3,578 characters, the command's plain text 3,250, and the command's `--json` 6,351.
 - **A search never syncs by itself.** It says how many notes are waiting and names `sync_index`.
 - **Long questions.** A question longer than about forty-five words makes the server replace its reader once, and questions are a little slower to read until the reader has been idle.
-- **Not in a release yet.** It is new since 0.1.0.
+- **Not in a release yet.** It is new since 0.1.1, so the README's install line does not give it to you yet.
 - **Measured on one Mac only.** It passes its end-to-end test on macOS, Linux and Windows; the timings below are from one machine.
 - **Not tried:** Claude Desktop itself, and any index larger than 2,199 passages through the server.
 

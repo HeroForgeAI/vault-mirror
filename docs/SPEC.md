@@ -982,7 +982,7 @@ One more, named so nobody builds a claim on it: **the index finds the right note
 
 ## 21. The MCP server
 
-Added after v0.1.0. `vault-mirror mcp` serves the Model Context Protocol over stdio, so an AI app reaches the index through named tools. The commands and the rule are unchanged; the server is a second way in. User-facing text: `docs/MCP.md`.
+Added after v0.1.1. `vault-mirror mcp` serves the Model Context Protocol over stdio, so an AI app reaches the index through named tools. The commands and the rule are unchanged; the server is a second way in. User-facing text: `docs/MCP.md`.
 
 ### What it promises
 

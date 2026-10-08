@@ -288,7 +288,7 @@ Not measured in this run: a sync after one edit, three wordings in one call, `re
 
 ## The MCP server: first search and repeat searches
 
-Added after v0.1.0. What is timed is the whole call as an MCP client sees it: from sending `search_vault` to having the result. The command beside it is the whole `vault-mirror search` command, from start to exit.
+Added after v0.1.1. What is timed is the whole call as an MCP client sees it: from sending `search_vault` to having the result. The command beside it is the whole `vault-mirror search` command, from start to exit.
 
 One machine: Apple M4 Max, 16 cores, 64 GB, Node 24.15.0, Oct 7, 2026. Other jobs were running (load average 5.4 to 5.5), so read each number as rough. The index is the practice vault's: 176 notes, 2,199 passages. The question is "How do I link to another note?", asking for 8 notes.
 

@@ -314,7 +314,7 @@ There are three tools. `search_vault` searches. `vault_status` answers "is my va
 
 While the model is loaded it takes about 0.6 GB of memory. Nothing is loaded until your AI first searches, and it is let go after five minutes without a search.
 
-**It is new since 0.1.0 and not in a release yet.** The install line at the top of this page gives you 0.1.0, which does not have it. Nothing else on this page needs it. Setup for each app, the tools in full, what it cannot do and troubleshooting: [docs/MCP.md](docs/MCP.md).
+**It is new since 0.1.1 and not in a release yet.** The install line at the top of this page gives you 0.1.1, which does not have it. Nothing else on this page needs it. Setup for each app, the tools in full, what it cannot do and troubleshooting: [docs/MCP.md](docs/MCP.md).
 
 ## When plain file search is enough, and when this helps
 
@@ -443,7 +443,7 @@ What CI runs on GitHub's hosted Windows machines (x64), and passes:
 
 Not yet tried on Windows, by anyone: OneDrive files that are shown but not downloaded; whether `sync --detach` flashes a window on a real desktop; Ctrl+C in the middle of a sync (one program cannot send it to another, so CI cannot); a vault of more than about 170 notes; and Windows on ARM, where ruvector has no native build and the built-in exact engine is meant to take over.
 
-New since 0.1.0, not in a release yet: [the MCP server](#the-mcp-server), with its own end-to-end test on the same invented notes.
+New since 0.1.1, not in a release yet: [the MCP server](#the-mcp-server), with its own end-to-end test on the same invented notes.
 
 Planned, with no dates:
 
