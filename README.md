@@ -322,6 +322,12 @@ There are three tools. `search_vault` searches. `vault_status` answers "is my va
 
 While the model is loaded it takes about 0.6 GB of memory. Nothing is loaded until your AI first searches, and it is let go after five minutes without a search.
 
+What is tested, and what is not:
+
+- **Tested** on macOS, Windows and Linux, on GitHub's hosted machines: the server is started for real and spoken to over stdio, with the MCP project's own client and by hand. Every tool is run, and a checksum listing of every vault file is compared before and after. A copy installed from GitHub the way this page installs it starts, lists its three tools and answers.
+- **Tested once, on one Mac:** adding it to Claude Code and to Codex with the lines above. Both listed the server, and Claude Code reported it connected.
+- **Not tested yet:** a conversation in which an AI app picks the tools by itself, Claude Desktop, and any other app.
+
 **It is new since 0.1.1 and not in a release yet.** The install line at the top of this page gives you 0.1.1, which does not have it. Nothing else on this page needs it. Setup for each app, the tools in full, what it cannot do and troubleshooting: [docs/MCP.md](docs/MCP.md).
 
 ## When plain file search is enough, and when this helps

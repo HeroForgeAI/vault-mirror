@@ -9,7 +9,7 @@ Each of these is good at what it is built for. The other columns come from each 
 | A deleted note leaves the index | ✓ | – | – | – | – |
 | One command proves index = vault | ✓ | – | – | – | – |
 | Blends keyword and meaning, then reranks | ✗ | ✓ | ✓ (reranking is optional) | – (a rerank stage is a Pro option) | – |
-| MCP server | ✓ (new since 0.1.1, not in a release yet; it only reads notes) | ✓ | ✓ | – | ✓ |
+| MCP server | ✓ (new since 0.1.1, not in a release yet; it only reads notes. Tested over stdio on macOS, Windows and Linux; not yet tested inside Claude Desktop) | ✓ | ✓ | – | ✓ |
 
 If ranking quality is what you need, use qmd: it is the stronger search tool. vault-mirror keeps two lists side by side and puts its effort into the read-only and 1:1 guarantees.
 

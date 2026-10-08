@@ -175,7 +175,7 @@ The passages a search returns go to your AI's service, as any file your AI reads
 - **Long questions.** A question longer than about forty-five words makes the server replace its reader once, and questions are a little slower to read until the reader has been idle.
 - **Not in a release yet.** It is new since 0.1.1, so the README's install line does not give it to you yet.
 - **Measured on one Mac only.** It passes its end-to-end test on macOS, Linux and Windows; the timings below are from one machine.
-- **Not tried:** Claude Desktop itself, and any index larger than 2,199 passages through the server.
+- **Not tried:** a conversation in which an AI app picks the tools by itself, Claude Desktop, any app other than Claude Code and Codex (which were only added and connected, on one Mac), and any index larger than 2,199 passages through the server.
 
 ## Which vault it serves
 
