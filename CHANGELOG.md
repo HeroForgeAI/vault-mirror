@@ -8,9 +8,9 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ### Added
 
-- `search --no-blend` and the setting `vault.blend` (default `true`). With the blend off, a search returns the list by meaning and the exact-words list apart, exactly as 0.1.0 did.
+- `search --no-blend` and the setting `vault.blend` (default `true`). With the blend off, a search returns the list by meaning and the exact-words list apart, exactly as 0.1.1 did.
 - JSON: `blended` (true or false) on the search result. When it is true, each entry of `results` also has `words` (the question's exact words the passage holds, empty when it was not moved), `wordsBonus` (0 to 0.2) and `blended` (`score` plus `wordsBonus`, the number the list is ordered by). No field was renamed or removed.
-- `tests/bench/ranking.mjs`, two labelled question sets for the practice vault, and `tests/bench/second-pass.mjs`. Results in `docs/BENCHMARKS.md`.
+- `tests/bench/ranking.mjs`, two labelled question sets for the practice vault, and `tests/bench/second-pass.mjs`. Results in `docs/BENCHMARKS.md`. The acceptance script runs the ranking check on sixteen questions about the fixture vault (step B1), on every system CI covers.
 
 ### Changed
 

@@ -199,6 +199,8 @@ Sets A and B were each written by an AI agent that was given the notes and the t
 
 A question counts at the place of the first right note (the expected note or a listed alternate) in what a search prints: the 8 results, then the exact-words list. "Printed" means anywhere in that output. MRR@10 and nDCG@10 are taken over the first ten places of the same output.
 
+A fourth list, `tests/bench/questions.fixture.json`, holds sixteen questions about the invented fixture vault. The acceptance script runs the ranking check on it (step B1) on macOS, Linux and Windows, to prove the script and the blend work on each system. Its notes are few and its questions easy, so both methods find nearly everything; it is not evidence for either.
+
 ### Set B: the test (120 questions, run once; load average 4.1)
 
 `VAULT_MIRROR_HOME=<home> node tests/bench/ranking.mjs --questions tests/bench/questions.obsidian-help.b.json --check <the vault>`

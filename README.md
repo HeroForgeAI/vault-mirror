@@ -162,7 +162,7 @@ The picture is drawn from real output on 15 invented notes: the vault in [`tests
 
 The match number says how close the paragraph is to the question. A higher number is closer. It is not a percentage of how sure anything is.
 
-One call gives one ranked list. It starts from the match **by meaning**, as above. A paragraph that also holds most of the **exact words** you asked for (a name, a code, a rare term) is moved up, and its line says which words. The match number is still the match by meaning; the order is that number plus up to 0.20 for the words. A short second list, shown only when it adds something, holds exact-word paragraphs the first list left out. `--no-blend` keeps the two lists apart, as 0.1.0 did. It was measured before it became the default: [docs/BENCHMARKS.md](docs/BENCHMARKS.md#the-blended-list).
+One call gives one ranked list. It starts from the match **by meaning**, as above. A paragraph that also holds most of the **exact words** you asked for (a name, a code, a rare term) is moved up, and its line says which words. The match number is still the match by meaning; the order is that number plus up to 0.20 for the words. A short second list, shown only when it adds something, holds exact-word paragraphs the first list left out. `--no-blend` keeps the two lists apart, as 0.1.1 did. It was measured before it became the default: [docs/BENCHMARKS.md](docs/BENCHMARKS.md#the-blended-list).
 
 <details>
 <summary><b>Prefer to type it yourself?</b></summary>

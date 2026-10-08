@@ -260,6 +260,21 @@ await step(5, 'status', () => {
 
 const NEW_SENTENCE = 'The copper kettle from the lighthouse keeper hangs above the stock pot now.';
 const OLD_SENTENCE = 'Never let it boil hard or the stock turns cloudy.';
+await step('B1', 'the ranking check runs here: blended against the two lists, on sixteen questions about the fixture', () => {
+  // A check that the script and the blend work on this system, with a floor. The measured comparison is in docs/BENCHMARKS.md.
+  const out = path.join(base, 'ranking.json');
+  const r = spawnSync(process.execPath, [path.join(REPO, 'tests', 'bench', 'ranking.mjs'), '--questions', path.join(REPO, 'tests', 'bench', 'questions.fixture.json'), '--check', VAULT, '--out', out], { cwd: CWD, env: envFor(MAIN), encoding: 'utf8', timeout: 600000 });
+  eq(r.status, 0, `exit (${r.stderr.slice(-300)})`);
+  assert(/check: 0 of \d+ far and exact questions break their rule/.test(r.stdout), 'every exact lookup is in its note word for word');
+  const rows = JSON.parse(fs.readFileSync(out, 'utf8')).rows.filter((/** @type {any} */ x) => x.wordings === 1 && x.kind === 'all');
+  const apart = rows.find((/** @type {any} */ x) => x.method.startsWith('two lists')); const blended = rows.find((/** @type {any} */ x) => x.method === 'blended');
+  eq(blended.of, 16, 'questions');
+  assert(blended.printed >= apart.printed && blended.top1 >= apart.top1 && blended.top3 >= apart.top3, `the blended list is at least as good here: ${JSON.stringify({ apart, blended })}`);
+  assert(blended.top3 >= 14, `the right note is in the first three for nearly every question: ${blended.top3} of 16`);
+  timings.ranking = { apart, blended };
+  return `first place for ${blended.top1} of 16 blended and ${apart.top1} kept apart; first three ${blended.top3} and ${apart.top3}`;
+});
+
 await step(6, 'edit one note; sync', () => {
   const before = readIndex(MAIN).manifest.stamp;
   edit('Kitchen/Soup stock.md', (t) => { assert(t.includes(OLD_SENTENCE), 'fixture sentence present'); return t.replace(OLD_SENTENCE, NEW_SENTENCE); });
@@ -622,7 +637,7 @@ await step(21, 'search quality on the question list', () => {
         if (wordings === 3 && !q.phrasings) { row.of--; continue; }
         const wanted = [q.expected, ...(q.alternates || [])];
         const words = wordings === 1 ? [pick(q)] : [pick(q), ...q.phrasings];
-        // The two lists kept apart, as in 0.1.0, so these counts stay comparable. tests/bench/ranking.mjs scores the blended list.
+        // The two lists kept apart, as in 0.1.1, so these counts stay comparable. tests/bench/ranking.mjs scores the blended list.
         const wide = vm(['search', ...words, '--no-sync', '--json', '-k', '8', '--no-blend']).json;
         const narrow = vm(['search', ...words, '--no-sync', '--json', '-k', '3', '--no-blend']).json;         // three by meaning plus the exact-words list
         const alone = vm(['search', ...words, '--no-sync', '--json', '-k', '8', '--no-exact-words']).json;

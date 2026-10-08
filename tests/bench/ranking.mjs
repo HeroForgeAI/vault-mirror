@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The ranking check: asks every question of a labelled list against the current vault's index, in one
-// process, and scores what a search would print. It compares the two lists kept apart (vault-mirror 0.1.0)
+// process, and scores what a search would print. It compares the two lists kept apart (vault-mirror 0.1.1 and earlier)
 // with the blended list, and, for the record, with plain reciprocal rank fusion, which was tried and not kept.
 // It reads the index only. It never syncs, and it writes nothing unless --out is given.
 //
@@ -91,7 +91,7 @@ async function fused(queries) {
 }
 
 const METHODS = /** @type {[string, (queries: string[]) => Promise<string[]>][]} */ ([
-  ['two lists (0.1.0)', (q) => printed(q, false)],
+  ['two lists (0.1.1)', (q) => printed(q, false)],
   ['blended', (q) => printed(q, true)],
   ['plain rank fusion (not kept)', fused],
 ]);

@@ -337,7 +337,7 @@ Also contains these exact words:
 
 #### The blended list
 
-The default since the release after 0.1.0. Decided from measurements on 260 labelled questions (`docs/BENCHMARKS.md`, "The blended list"): plain rank fusion (1 / (60 + place) from each list) was tried first and put the right note of a reworded question below notes that merely appear in both lists, which is the test the line above used to cite; the rule below was at least as good as two lists on every kind of question and better overall.
+The default since the release after 0.1.1. Decided from measurements on 260 labelled questions (`docs/BENCHMARKS.md`, "The blended list"): plain rank fusion (1 / (60 + place) from each list) was tried first and put the right note of a reworded question below notes that merely appear in both lists, which is the test the line above used to cite; the rule below was at least as good as two lists on every kind of question and better overall.
 
 - **Share.** For each wording, a passage's share is the summed weight of the wording's distinctive words it really holds (read back from the passage, as for `words`), over the summed weight of all the wording's distinctive words. A word's weight is the BM25 `idf` above. It counts presence, not frequency. 0..1.
 - **Bonus.** `0` when the share is 0.5 or less; otherwise `0.2 × (share − 0.5) / 0.5`. Then multiplied by `min(1, 3 / c)`, where `c` is the number of notes whose best share is at least this passage's share: words that many notes hold equally move nothing much.

@@ -434,7 +434,7 @@ test('the blended list: a passage that holds the exact words moves up, and says 
   const apart = await searchReady(ready, { ...opts, queries: ['kestrel ledger'], blend: false });
   assert.deepEqual(apart.results.map((x) => x.passage), ['Best.md#0', 'Near.md#0', 'Ledger.md#0'], 'kept apart, the first list is by meaning alone');
   assert.deepEqual(apart.exactWords.map((x) => x.passage), ['Ledger.md#1']);
-  assert.ok(!('wordsBonus' in apart.results[0]) && !('blended' in apart.results[0]) && !('words' in apart.results[0]), 'and its rows have the fields of 0.1.0, no more');
+  assert.ok(!('wordsBonus' in apart.results[0]) && !('blended' in apart.results[0]) && !('words' in apart.results[0]), 'and its rows have the fields of 0.1.1, no more');
   const alone = await searchReady({ ...ready, words: null }, { ...opts, queries: ['kestrel ledger'] });
   assert.equal(alone.blended, false);
   assert.deepEqual(alone.results, apart.results, 'without the exact words there is nothing to blend');

@@ -2,13 +2,13 @@
 
 Each of these is good at what it is built for. The other columns come from each project's own README as read on Oct 7, 2026, at the version named. A dash means that README does not say; it is not a claim that the tool lacks the feature.
 
-| | vault-mirror 0.1.0 | [qmd](https://github.com/tobi/qmd) v2.8.3 | [basic-memory](https://github.com/basicmachines-co/basic-memory) v0.23.2 | [Smart Connections](https://github.com/brianpetro/obsidian-smart-connections) 4.7.2 | [obsidian-brain](https://github.com/ruvnet/obsidian-brain) v0.1.0 |
+| | vault-mirror 0.1.1 | [qmd](https://github.com/tobi/qmd) v2.8.3 | [basic-memory](https://github.com/basicmachines-co/basic-memory) v0.23.2 | [Smart Connections](https://github.com/brianpetro/obsidian-smart-connections) 4.7.2 | [obsidian-brain](https://github.com/ruvnet/obsidian-brain) v0.1.0 |
 | --- | --- | --- | --- | --- | --- |
 | Runs as | a shell command | a shell command | an MCP server and a shell command | an Obsidian plugin | an Obsidian plugin and two local services |
 | Never writes a note | ✓ | – | ✗ (two-way by design) | – | – |
 | A deleted note leaves the index | ✓ | – | – | – | – |
 | One command proves index = vault | ✓ | – | – | – | – |
-| One ranked list that blends keyword and meaning | ✓ (after 0.1.0, not yet released) | ✓ | ✓ | – | – |
+| One ranked list that blends keyword and meaning | ✓ (planned for 0.2.0, not yet released) | ✓ | ✓ | – | – |
 | Then reranks with a second model | ✗ (measured, not built in) | ✓ | ✓ (optional, off by default) | – (a rerank stage is a Pro option) | – |
 | MCP server | ✗ | ✓ | ✓ | – | ✓ |
 
