@@ -52,9 +52,10 @@ export async function waitFor(done, ms) {
 /**
  * Start `vault-mirror mcp` and speak newline-delimited JSON-RPC to it by hand.
  * @param {string[]} args @param {Record<string, string | undefined>} env
+ * @param {string} [bin]   another copy's bin/vault-mirror.js (an installed one); this checkout's by default
  */
-export function startRaw(args, env) {
-  const child = spawn(process.execPath, [BIN, 'mcp', ...args], { env, stdio: ['pipe', 'pipe', 'pipe'] });
+export function startRaw(args, env, bin = BIN) {
+  const child = spawn(process.execPath, [bin, 'mcp', ...args], { env, stdio: ['pipe', 'pipe', 'pipe'] });
   let out = ''; let err = ''; let buf = ''; let nextId = 1;
   /** @type {Map<number, (message: any) => void>} */
   const waiting = new Map();
