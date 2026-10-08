@@ -15,6 +15,11 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 - The rule that `init` writes has one more sentence: use `vault-mirror search` before the Obsidian command-line tool or plain file search, and turn to those only when it returns nothing useful. Run `vault-mirror init "<folder>"` again to get it. `init` replaces the earlier rule where it stands, also when it was pasted without its two markers, touches no other line, and keeps the file's line endings.
 
+### Fixed
+
+- Times that round up to a whole minute or hour now read that way: 59.5 seconds is `1 min` and 3599.5 seconds is `1 h 0 min`, not `60 s` or `59 min 60 s`.
+- `--workers` now takes `auto` or a whole number only, on `sync` and `rebuild` alike. A fraction, an empty value and forms such as `0x10` or `1e3` used to slip through and are now refused with the same sentence; `rebuild --workers abc` without `--full` is refused too. Builds on the fix GreedyC contributed in [#18](https://github.com/HeroForgeAI/vault-mirror/pull/18).
+
 ## [0.1.1] - 2026-10-08
 
 vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still only ever read. Upgrading reads no note again: nothing changed in how notes are cut or read, and an index made by 0.1.0 is kept.

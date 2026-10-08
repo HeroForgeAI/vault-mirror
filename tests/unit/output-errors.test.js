@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { ERRORS, VmError, toVmError } from '../../src/errors.js';
 import { num, duration, eta, plural } from '../../src/cli/output.js';
+import { parseWorkers } from '../../src/cli/flags.js';
 import { skippedSentence } from '../../src/sync/run.js';
 import { tmpDir } from '../helpers/tmp.mjs';
 import fs from 'node:fs';
@@ -66,6 +67,9 @@ test('plain numbers and durations', () => {
   assert.equal(duration(3600), '1 h 0 min');
   assert.equal(duration(3660), '1 h 1 min');
   assert.equal(duration(7320), '2 h 2 min');
+  assert.equal(duration(59.5), '1 min');
+  assert.equal(duration(119.6), '2 min');
+  assert.equal(duration(3599.5), '1 h 0 min');
   assert.equal(eta(1), 'about 5 s left');
   assert.equal(eta(12), 'about 10 s left');
   assert.equal(eta(13), 'about 15 s left');
@@ -143,6 +147,31 @@ test('full rebuild rejects invalid workers like sync, before starting an index',
       assert.equal(fs.existsSync(indexDir), false, 'runSync must not start');
       assert.equal(fs.readFileSync(path.join(vault, 'A.md'), 'utf8'), note);
     }
+  }
+});
+
+test('--workers takes auto or a whole number, and sync and rebuild share the one check', () => {
+  assert.equal(parseWorkers(undefined), undefined);
+  assert.equal(parseWorkers('auto'), 'auto');
+  assert.equal(parseWorkers('0'), 0);
+  assert.equal(parseWorkers('3'), 3);
+  // Number() reads '' as 0, '0x10' as 16 and '1e3' as 1000, and lets 2.5 through. None is a count of readers.
+  for (const bad of ['abc', '-1', '2.5', '', ' ', ' 2', '0x10', '1e3', 'Infinity', 'NaN', 'AUTO']) {
+    assert.throws(() => parseWorkers(bad), (/** @type {any} */ e) => e.code === 'VM_E_USAGE' && e.exitCode === 2, JSON.stringify(bad));
+  }
+  // The real commands, in a scratch home with no vault set up. A refused flag is said before the vault is
+  // looked for, so nothing can be read; a fine value gets as far as "No vault is set up yet".
+  const sentence = '--workers takes a number, for example --workers 2.\nNext: Run `vault-mirror --help`.\n';
+  const noVault = 'No vault is set up yet.\nNext: Run `vault-mirror init "<path to your vault>"`.\n';
+  for (const cmd of [['sync'], ['rebuild', '--full', '--yes'], ['rebuild']]) {
+    for (const value of ['2.5', '', '0x10', '1e3']) {
+      const r = run([...cmd, `--workers=${value}`]);
+      assert.equal(r.status, 2, `${cmd.join(' ')} --workers=${JSON.stringify(value)}`);
+      assert.equal(r.stderr, sentence, `${cmd.join(' ')} --workers=${JSON.stringify(value)}`);
+      assert.equal(r.stdout, '');
+    }
+    assert.equal(run([...cmd, '--workers=2']).stderr, noVault, `${cmd.join(' ')} --workers=2 is a fine value`);
+    assert.equal(run([...cmd, '--workers=auto']).stderr, noVault, `${cmd.join(' ')} --workers=auto is a fine value`);
   }
 });
 

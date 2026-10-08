@@ -7,18 +7,19 @@ import { liveOwner } from '../../store/lock.js';
 import { readProgress } from '../../sync/progress.js';
 import { ensureDir } from '../../store/safe-write.js';
 import { VmError } from '../../errors.js';
+import { parseWorkers } from '../flags.js';
 
 /**
  * @param {{ detach?: boolean, workers?: string, fullSpeed?: boolean, wait?: string, allowMassDelete?: boolean, verify?: boolean }} args
  * @param {import('../output.js').Ui} ui
  */
 export async function syncCommand(args, ui) {
-  const ctx = loadContext({ needVault: true });
-  const vault = { name: ctx.vault.name, path: ctx.vault.real };
-  const workers = args.workers == null ? undefined : args.workers === 'auto' ? 'auto' : Number(args.workers);
-  if (typeof workers === 'number' && (!Number.isFinite(workers) || workers < 0)) throw new VmError('VM_E_USAGE', { detail: '--workers takes a number, for example --workers 2.' });
+  // A mistyped flag is said first, before the vault is looked for or a note is read.
+  const workers = parseWorkers(args.workers);
   const waitSeconds = args.wait == null ? undefined : Number(args.wait);
   if (waitSeconds != null && !Number.isFinite(waitSeconds)) throw new VmError('VM_E_USAGE', { detail: '--wait takes a number of seconds.' });
+  const ctx = loadContext({ needVault: true });
+  const vault = { name: ctx.vault.name, path: ctx.vault.real };
 
   if (args.detach) {
     ensureDir(ctx.indexDir);
