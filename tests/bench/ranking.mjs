@@ -4,7 +4,7 @@
 // with the blended list, and, for the record, with plain reciprocal rank fusion, which was tried and not kept.
 // It reads the index only. It never syncs, and it writes nothing unless --out is given.
 //
-//   VAULT_MIRROR_HOME=<home> node tests/bench/ranking.mjs --questions <file> [--questions <file>] [--check <vault>] [--out <file>]
+//   VAULT_MIRROR_HOME=<home> node tests/bench/ranking.mjs --questions <file> [--questions <file>] [--check <vault>] [--out <file> | --out -]
 //
 // A question file is a JSON array. Each entry has `expected` (a vault path), optional `alternates`, optional
 // `phrasings` (two more wordings), and either `kind` + `question`, or `question` + `exact` (the older list:
@@ -143,5 +143,6 @@ for (const wordings of [1, 3]) {
 const up = report.moved.filter((/** @type {any} */ m) => (m.blended ?? 99) < (m.twoLists ?? 99)).length;
 console.log(`\nBlended against two lists: the right note moved up in ${up} searches and down in ${report.moved.length - up}. Load average at the end: ${report.loadAtEnd.join(' ')}`);
 for (const m of report.moved.filter((/** @type {any} */ x) => (x.blended ?? 99) > (x.twoLists ?? 99))) console.log(`  down: ${m.kind} #${m.n} (${m.file}), ${m.wordings === 1 ? 'one wording' : 'three wordings'}: place ${m.twoLists} -> ${m.blended ?? 'not printed'}`);
-if (opt.out) fs.writeFileSync(opt.out, JSON.stringify(report, null, 2) + '\n');
+if (opt.out === '-') console.log(`REPORT ${JSON.stringify(report)}`); // one line, for a caller that must not leave a file behind
+else if (opt.out) fs.writeFileSync(opt.out, JSON.stringify(report, null, 2) + '\n');
 process.exit(0);

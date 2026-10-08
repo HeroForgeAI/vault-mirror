@@ -262,11 +262,10 @@ const NEW_SENTENCE = 'The copper kettle from the lighthouse keeper hangs above t
 const OLD_SENTENCE = 'Never let it boil hard or the stock turns cloudy.';
 await step('B1', 'the ranking check runs here: blended against the two lists, on sixteen questions about the fixture', () => {
   // A check that the script and the blend work on this system, with a floor. The measured comparison is in docs/BENCHMARKS.md.
-  const out = path.join(base, 'ranking.json');
-  const r = spawnSync(process.execPath, [path.join(REPO, 'tests', 'bench', 'ranking.mjs'), '--questions', path.join(REPO, 'tests', 'bench', 'questions.fixture.json'), '--check', VAULT, '--out', out], { cwd: CWD, env: envFor(MAIN), encoding: 'utf8', timeout: 600000 });
+  const r = spawnSync(process.execPath, [path.join(REPO, 'tests', 'bench', 'ranking.mjs'), '--questions', path.join(REPO, 'tests', 'bench', 'questions.fixture.json'), '--check', VAULT, '--out', '-'], { cwd: CWD, env: envFor(MAIN), encoding: 'utf8', timeout: 600000 });
   eq(r.status, 0, `exit (${r.stderr.slice(-300)})`);
   assert(/check: 0 of \d+ far and exact questions break their rule/.test(r.stdout), 'every exact lookup is in its note word for word');
-  const rows = JSON.parse(fs.readFileSync(out, 'utf8')).rows.filter((/** @type {any} */ x) => x.wordings === 1 && x.kind === 'all');
+  const rows = JSON.parse((/^REPORT (.*)$/m.exec(r.stdout) || [])[1] || '{"rows":[]}').rows.filter((/** @type {any} */ x) => x.wordings === 1 && x.kind === 'all');
   const apart = rows.find((/** @type {any} */ x) => x.method.startsWith('two lists')); const blended = rows.find((/** @type {any} */ x) => x.method === 'blended');
   eq(blended.of, 16, 'questions');
   assert(blended.printed >= apart.printed && blended.top1 >= apart.top1 && blended.top3 >= apart.top3, `the blended list is at least as good here: ${JSON.stringify({ apart, blended })}`);
