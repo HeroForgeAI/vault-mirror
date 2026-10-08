@@ -66,6 +66,9 @@ test('plain numbers and durations', () => {
   assert.equal(duration(3600), '1 h 0 min');
   assert.equal(duration(3660), '1 h 1 min');
   assert.equal(duration(7320), '2 h 2 min');
+  assert.equal(duration(59.5), '1 min');
+  assert.equal(duration(119.6), '2 min');
+  assert.equal(duration(3599.5), '1 h 0 min');
   assert.equal(eta(1), 'about 5 s left');
   assert.equal(eta(12), 'about 10 s left');
   assert.equal(eta(13), 'about 15 s left');
