@@ -6,6 +6,10 @@ A change to how notes are cut into passages, or to the reading model, makes ever
 
 ## [Unreleased]
 
+### Fixed
+
+- `--workers` now takes `auto` or a whole number only, on `sync` and `rebuild` alike. A fraction, an empty value and forms such as `0x10` or `1e3` used to slip through and are now refused with the same sentence; `rebuild --workers abc` without `--full` is refused too. Builds on the fix GreedyC contributed in [#18](https://github.com/HeroForgeAI/vault-mirror/pull/18).
+
 ## [0.1.1] - 2026-10-08
 
 vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still only ever read. Upgrading reads no note again: nothing changed in how notes are cut or read, and an index made by 0.1.0 is kept.
@@ -20,7 +24,6 @@ vault-mirror now works on Windows and Linux as it does on a Mac. Notes are still
 - `sync --detach` on Windows no longer opens a console window of its own.
 - `init`: a `CLAUDE.md` or `AGENTS.md` whose lines end the Windows way (CRLF) now gets the rule in that form. Before, the rule was added with plain line endings and the file ended up with both kinds.
 - `rebuild --full` rejects invalid `--workers` values with the same usage error as `sync`, before starting to re-read notes.
-- `--workers` now takes `auto` or a whole number only, on `sync` and `rebuild` alike. A fraction, an empty value and forms such as `0x10` or `1e3` used to slip through and are now refused with the same sentence; `rebuild --workers abc` without `--full` is refused too. Builds on the fix GreedyC contributed in [#18](https://github.com/HeroForgeAI/vault-mirror/pull/18).
 
 ### Added
 
