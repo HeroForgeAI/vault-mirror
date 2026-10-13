@@ -164,7 +164,7 @@ One current vault. `init` on another folder switches to it and says so; each vau
 | `obsidianExcludes` | `true` | Also leave out what Obsidian's own "Excluded files" setting names (section 10). `false` ignores that setting |
 | `embedding.model` | `"all-MiniLM-L6-v2"` | The working default. It is a key into the model table in `src/embed/models.js` (section 9), which is where a different model plugs in. Changing it re-reads every note once |
 | `searchAutoSyncMaxPassages` | 20 | A search syncs first only when the waiting work is this small (seconds on a slow laptop) |
-| `resultCount` | 8 | Notes returned by a search |
+| `resultCount` | 8 | Notes in the ranked search list, at most 50 |
 | `readingSummary` | `true` | A search ends with the reading line (see `search`). `false` leaves the line out; the `reading` fields in `--json` stay |
 
 Precedence: command flag, then `VAULT_MIRROR_HOME`, then `config.json`, then defaults. `~` is expanded. The file is written atomically (temp file, then rename).
@@ -262,8 +262,9 @@ added 1,230 · updated 0 · renamed 0 · removed 0 · unchanged 0 · left out 10
 
 ### `search "<question>"`
 
-- Flags: `-k, --count <n>` (default 8), `--no-sync`, `--no-exact-words`.
+- Flags: `-k, --count <n>` (default 8, at most 50 notes in the ranked list), `--no-sync`, `--no-exact-words`.
 - Flow: guards; if no sync has ever completed and nothing is saved, stop with `Nothing is indexed yet. Run vault-mirror sync first.` (exit 2, `VM_E_NOT_SYNCED`); a quick sync first unless `--no-sync`, another sync is running, or the waiting work exceeds `searchAutoSyncMaxPassages` (then a one-line notice and it searches what is there); bring the engine in step with the manifest (section 8); embed the question; fetch `max(count × 8, 50)` passages; drop any hit the manifest does not know; keep the best passage per note; if fewer than `count` notes remain and the fetch came back full, fetch four times as many once and repeat; print.
+- The count limits the ranked results only. The separate exact-word list can show additional matching passages; `--no-exact-words` leaves that list out.
 - Because the manifest is saved after every group of notes, a search during a long first sync covers everything saved so far and says so in one notice.
 - Result shape (the public contract):
 
