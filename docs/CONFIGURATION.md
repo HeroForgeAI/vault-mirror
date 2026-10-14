@@ -8,7 +8,9 @@ You can leave these alone. `init` writes one file, `~/.vault-mirror/config.json`
 | `vault.exclude` | `[]`, plus your templates folder if you have one | Folders or files to leave out |
 | `vault.obsidianExcludes` | `true` | Also leave out what Obsidian's "Excluded files" setting names |
 | `vault.minWords` | `3` | A section with fewer words makes no passage |
+| `vault.dropFences` | `["mermaid", "dataview", "dataviewjs", "query", "base", "tasks"]` | Leave out the whole fenced code block when its language is in this list |
 | `vault.workers` | `"auto"` | Readers for a large sync. Never more than 4 unless you set a number |
+| `vault.searchAutoSyncMaxPassages` | `20` | A search defers its quick sync when either waiting notes or passages to embed exceed this limit; run `vault-mirror sync` for more work |
 | `vault.resultCount` | `8` | Notes returned by a search (`-k` overrides it) |
 | `vault.readingSummary` | `true` | A search ends with one line: how many words came back, and how many words the notes they came from hold. `false` turns the line off; so does `--quiet` for one search |
 | `vault.screen` | `"report"` | Flags passages that look like they hold a password or key, and masks them in results. `status --screen` lists them |
